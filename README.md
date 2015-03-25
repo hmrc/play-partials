@@ -3,6 +3,8 @@ play-partials
 
 A library used to retrieve HTML partials to use when composing HTML Play frontend applications.
 
+In supports caching the partials.
+
 ## Adding to your service
 
 Include the following dependency in your SBT build
