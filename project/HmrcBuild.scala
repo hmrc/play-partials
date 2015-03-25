@@ -24,7 +24,7 @@ object HmrcBuild extends Build {
   import uk.gov.hmrc.{SbtBuildInfo, ShellPrompt}
 
   val appName = "play-partials"
-  val appVersion = "1.0.0-SNAPSHOT"
+  val appVersion = "1.0.0"
 
   lazy val microservice = Project(appName, file("."))
     .settings(version := appVersion)
@@ -57,7 +57,7 @@ private object AppDependencies {
     "com.typesafe.play" %% "play" % PlayVersion.current,
     "com.google.guava" % "guava" % "18.0",
 
-    "uk.gov.hmrc" %% "http-verbs" % "1.1.0"
+    "uk.gov.hmrc" %% "http-verbs" % "1.2.0"
   )
 
   trait TestDependencies {
