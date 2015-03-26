@@ -56,7 +56,7 @@ private object AppDependencies {
 
   val compile = Seq(
     "com.typesafe.play" %% "play" % PlayVersion.current,
-    "com.google.guava" % "guava" % "18.0",
+    "com.google.guava" % "guava" % "16.0.1",
 
     "uk.gov.hmrc" %% "http-verbs" % "1.4.0"
   )
