@@ -47,6 +47,7 @@ object HmrcBuild extends Build {
     .settings(POMMetadata(): _*)
     .settings(Headers(): _ *)
     .disablePlugins(sbt.plugins.JUnitXmlReportPlugin)
+    .settings(resolvers += Resolver.bintrayRepo("hmrc", "releases"))
 }
 
 private object AppDependencies {
@@ -57,7 +58,7 @@ private object AppDependencies {
     "com.typesafe.play" %% "play" % PlayVersion.current,
     "com.google.guava" % "guava" % "18.0",
 
-    "uk.gov.hmrc" %% "http-verbs" % "1.2.0"
+    "uk.gov.hmrc" %% "http-verbs" % "1.4.0"
   )
 
   trait TestDependencies {
