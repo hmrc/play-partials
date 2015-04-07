@@ -1,7 +1,7 @@
 play-partials
 =============
 
-[ ![Download](https://api.bintray.com/packages/hmrc/releases/play-partials/images/download.svg) ](https://bintray.com/hmrc/releases/play-partials/_latestVersion)
+[ ![Download](https://api.bintray.com/packages/hmrc/releases/play-partials/images/download.svg) ](https://bintray.com/hmrc/releases/play-partials/_latestVersion) [ ![Download](https://api.bintray.com/packages/hmrc/releases/play-partials/images/download.svg) ](https://bintray.com/hmrc/releases/play-partials/_latestVersion)
 
 A library used to retrieve HTML partials to use when composing HTML Play frontend applications.
 
