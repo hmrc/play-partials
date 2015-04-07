@@ -19,11 +19,11 @@ libraryDependencies += "uk.gov.hmrc" %% "play-partials" % "x.x.x"
 
 ## Using cached static partials
 
-If you need to use a static cached partial, use the `CachedStaticHtmlPartial` trait. It will retrieve the partial from the given URL and cache it (the cache key is the partial URL) for the defined period of time. You can also pass through a map of parameters used to replace placeholders in the retrieved partial. Placeholders have the form of {{parameteKey}}.
+If you need to use a static cached partial, use the `CachedStaticHtmlPartial` trait. It will retrieve the partial from the given URL and cache it (the cache key is the partial URL) for the defined period of time. You can also pass through a map of parameters used to replace placeholders in the retrieved partial. Placeholders have the form of `{{parameterKey}}`.
 
 ### Using HTML Form partials
 
-A special case of the static partials are HTML forms. By using `CachedStaticFormPartial` a {{csrfToken}} placeholder will be replaced with the Play CSRF token value.
+A special case of the static partials are HTML forms. By using `CachedStaticFormPartial` a `{{csrfToken}}` placeholder will be replaced with the Play CSRF token value.
 
 ## License ##
 
