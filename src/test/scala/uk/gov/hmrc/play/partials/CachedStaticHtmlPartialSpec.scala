@@ -22,6 +22,7 @@ import org.mockito.Mockito._
 import org.mockito.{Matchers => MockitoMatchers}
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpecLike}
+import play.api.test.FakeRequest
 import play.twirl.api.Html
 import uk.gov.hmrc.play.audit.http.HeaderCarrier
 import uk.gov.hmrc.play.http.{HttpException, HttpGet, HttpReads}
@@ -67,6 +68,7 @@ class CachedStaticHtmlPartialSpec extends WordSpecLike with Matchers with Mockit
     override def expireAfter: Duration = cacheExpiryIntervalInHours.hours
   }
 
+  implicit val request = FakeRequest()
 
   override protected def beforeEach() = {
     super.beforeEach()
@@ -114,7 +116,7 @@ class CachedStaticHtmlPartialSpec extends WordSpecLike with Matchers with Mockit
       when(mockHttpGet.GET[Html](MockitoMatchers.eq("foo"))(any[HttpReads[Html]], any[HeaderCarrier]))
         .thenReturn(Future.failed(new HttpException("error", 404)))
 
-      htmlPartial.get("foo", Html("something went wrong")).body should be("something went wrong")
+      htmlPartial.get(url = "foo", errorMessage = Html("something went wrong")).body should be("something went wrong")
     }
 
     "return error message when stale value has expired and there is an exception reloading the cache" in {
@@ -127,7 +129,7 @@ class CachedStaticHtmlPartialSpec extends WordSpecLike with Matchers with Mockit
 
       testTicker.shiftTimeInHours(cacheExpiryIntervalInHours + 1)
 
-      htmlPartial.get("foo", Html("something went wrong")).body should be("something went wrong")
+      htmlPartial.get(url = "foo", errorMessage = Html("something went wrong")).body should be("something went wrong")
 
     }
 

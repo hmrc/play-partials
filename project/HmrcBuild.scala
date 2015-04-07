@@ -53,8 +53,10 @@ object HmrcBuild extends Build {
 private object AppDependencies {
 
   import play.core.PlayVersion
+  import play.PlayImport._
 
   val compile = Seq(
+    filters,
     "com.typesafe.play" %% "play" % PlayVersion.current,
     "com.google.guava" % "guava" % "16.0.1",
 
@@ -69,6 +71,7 @@ private object AppDependencies {
   object Test {
     def apply() = new TestDependencies {
       override lazy val test = Seq(
+        "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
         "org.scalatest" %% "scalatest" % "2.2.2" % scope,
         "org.pegdown" % "pegdown" % "1.4.2" % scope,
         "org.mockito" % "mockito-all" % "1.9.5" % scope

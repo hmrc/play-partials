@@ -21,6 +21,7 @@ import java.util.concurrent.{ExecutionException, TimeUnit}
 import com.google.common.base.Ticker
 import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
 import play.api.Logger
+import play.api.mvc.{RequestHeader, Request}
 import play.twirl.api.{Html, HtmlFormat}
 import uk.gov.hmrc.play.audit.http.HeaderCarrier
 import uk.gov.hmrc.play.http.HttpGet
@@ -28,7 +29,7 @@ import uk.gov.hmrc.play.http.HttpGet
 import scala.concurrent._
 import scala.concurrent.duration._
 
-trait CachedStaticHtmlPartial {
+trait CachedStaticHtmlPartial extends TemplateProcessor {
 
   val cacheTicker = new Ticker {
     override def read() = System.currentTimeMillis()
@@ -55,9 +56,9 @@ trait CachedStaticHtmlPartial {
       } //TODO we could also override reload() and refresh the cache asynchronously: https://code.google.com/p/guava-libraries/wiki/CachesExplained#Refresh
   })
 
-  def get(url: String, errorMessage: Html = HtmlFormat.empty): Html = {
+  def get(url: String, templateParameters: Map[String, String] = Map.empty, errorMessage: Html = HtmlFormat.empty)(implicit request: RequestHeader): Html = {
     try {
-      cache.get(url)
+      processTemplate(cache.get(url), templateParameters)
     } catch {
       case e: ExecutionException => Logger.warn(s"Cannot refresh cached partial from $url: ${e.getCause.getMessage}"); errorMessage
     }
