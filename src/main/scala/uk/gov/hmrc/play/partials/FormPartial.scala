@@ -19,18 +19,30 @@ package uk.gov.hmrc.play.partials
 import play.api.mvc.RequestHeader
 import play.twirl.api.Html
 
-trait CachedStaticFormPartial extends CachedStaticHtmlPartial {
+import scala.concurrent.Await
+
+trait FormPartial extends PartialRetriever with HeaderCarrierForPartialsConverter {
 
   override def processTemplate(template: Html, parameters: Map[String, String])(implicit request: RequestHeader): Html = {
-
     val formParameters = parameters + ("csrfToken" -> getCsrfToken)
     super.processTemplate(template, formParameters)
-
   }
 
-  private def getCsrfToken(implicit request: RequestHeader): String = {
+  override protected def loadPartial(url: String)(implicit request: RequestHeader) : Html = {
+    Await.result(httpGet.GET[Html](urlWithCsrfToken(url)), partialRetrievalTimeout)
+  }
+
+  protected def getCsrfToken(implicit request: RequestHeader): String = {
     import play.filters.csrf.CSRF
 
     CSRF.getToken(request).map{ _.value }.getOrElse("")
+  }
+
+  private def urlWithCsrfToken(url: String)(implicit request: RequestHeader) = {
+   if(url.contains("&")) {
+     s"$url?csrfToken=$getCsrfToken"
+   } else {
+     s"$url&csrfToken=$getCsrfToken"
+   }
   }
 }
