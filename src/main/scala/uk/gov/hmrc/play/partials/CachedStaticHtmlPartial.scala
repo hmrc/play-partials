@@ -16,28 +16,22 @@
 
 package uk.gov.hmrc.play.partials
 
-import java.util.concurrent.{ExecutionException, TimeUnit}
+import java.util.concurrent.TimeUnit
 
 import com.google.common.base.Ticker
 import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
-import play.api.Logger
-import play.api.mvc.{RequestHeader, Request}
-import play.twirl.api.{Html, HtmlFormat}
+import play.api.mvc.RequestHeader
+import play.twirl.api.Html
 import uk.gov.hmrc.play.audit.http.HeaderCarrier
-import uk.gov.hmrc.play.http.HttpGet
 
 import scala.concurrent._
 import scala.concurrent.duration._
 
-trait CachedStaticHtmlPartial extends TemplateProcessor {
+trait CachedStaticHtmlPartial extends PartialRetriever {
 
   val cacheTicker = new Ticker {
     override def read() = System.currentTimeMillis()
   }
-
-  def httpGet: HttpGet
-
-  def partialRetrievalTimeout: Duration = 10.seconds
 
   def refreshAfter: Duration = 60.seconds
 
@@ -52,19 +46,15 @@ trait CachedStaticHtmlPartial extends TemplateProcessor {
     .expireAfterWrite(expireAfter.toMillis, TimeUnit.MILLISECONDS)
     .build(new CacheLoader[String, Html]() {
       override def load(url: String) : Html = {
-        loadPartial(url)
+        fetchPartial(url)
       } //TODO we could also override reload() and refresh the cache asynchronously: https://code.google.com/p/guava-libraries/wiki/CachesExplained#Refresh
   })
 
-  def get(url: String, templateParameters: Map[String, String] = Map.empty, errorMessage: Html = HtmlFormat.empty)(implicit request: RequestHeader): Html = {
-    try {
-      processTemplate(cache.get(url), templateParameters)
-    } catch {
-      case e: ExecutionException => Logger.warn(s"Cannot refresh cached partial from $url: ${e.getCause.getMessage}"); errorMessage
-    }
+  override protected def loadPartial(url: String)(implicit request: RequestHeader) : Html = {
+    cache.get(url)
   }
 
-  private def loadPartial(url: String) : Html = {
+  private def fetchPartial(url: String) : Html = {
     implicit val hc = HeaderCarrier()
     Await.result(httpGet.GET[Html](url), partialRetrievalTimeout)
   }
