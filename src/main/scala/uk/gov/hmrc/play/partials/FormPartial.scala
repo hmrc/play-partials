@@ -38,11 +38,10 @@ trait FormPartial extends PartialRetriever with HeaderCarrierForPartialsConverte
     CSRF.getToken(request).map{ _.value }.getOrElse("")
   }
 
-  private def urlWithCsrfToken(url: String)(implicit request: RequestHeader) = {
-   if(url.contains("&")) {
-     s"$url?csrfToken=$getCsrfToken"
-   } else {
-     s"$url&csrfToken=$getCsrfToken"
-   }
-  }
+  def urlWithCsrfToken(url: String)(implicit request: RequestHeader) =
+    if(url.contains("?"))
+      s"$url&csrfToken=$getCsrfToken"
+    else
+      s"$url?csrfToken=$getCsrfToken"
+
 }
