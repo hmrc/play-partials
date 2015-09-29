@@ -21,10 +21,6 @@ import uk.gov.hmrc.versioning.SbtGitVersioning
 
 object HmrcBuild extends Build {
 
-  import uk.gov.hmrc.DefaultBuildSettings._
-  import uk.gov.hmrc.PublishingSettings._
-  import uk.gov.hmrc.{SbtBuildInfo, ShellPrompt}
-
   val appName = "play-partials"
 
   lazy val microservice = Project(appName, file("."))
@@ -43,14 +39,14 @@ object HmrcBuild extends Build {
 
 private object AppDependencies {
 
-  import play.core.PlayVersion
   import play.PlayImport._
+  import play.core.PlayVersion
 
   val compile = Seq(
     filters,
     "com.typesafe.play" %% "play" % PlayVersion.current,
     "com.google.guava" % "guava" % "16.0.1",
-    "uk.gov.hmrc" %% "http-verbs" % "2.0.0"
+    "uk.gov.hmrc" %% "http-verbs" % "2.2.1"
   )
 
   trait TestDependencies {
