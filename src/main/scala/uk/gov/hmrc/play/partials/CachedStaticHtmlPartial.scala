@@ -54,6 +54,8 @@ trait CachedStaticHtmlPartial extends PartialRetriever {
     cache.get(url)
   }
 
+  override protected def loadPartialFuture(url: String)(implicit request: RequestHeader) : Future[Partial] = ???
+
   private def fetchPartial(url: String) : Html = {
     implicit val hc = HeaderCarrier()
     Await.result(httpGet.GET[Html](url), partialRetrievalTimeout)
