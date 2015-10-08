@@ -21,6 +21,18 @@ libraryDependencies += "uk.gov.hmrc" %% "play-partials" % "x.x.x"
 
 If you need to use a static cached partial, use the `CachedStaticHtmlPartial` trait. It will retrieve the partial from the given URL and cache it (the cache key is the partial URL) for the defined period of time. You can also pass through a map of parameters used to replace placeholders in the retrieved partial. Placeholders have the form of `{{parameterKey}}`.
 
+You can manage the cache parameters by overriding `refreshAfter`, `expireAfter` and `maximumEntries` attributes.
+
+### A simple example of using the partials provider
+
+```scala
+object CachedStaticHtmlPartialProvider extends CachedStaticHtmlPartial {
+  override val httpGet = ???
+}
+
+val partial = CachedStaticHtmlPartialProvider.get("http://my.partial")
+```
+
 ### Using HTML Form partials
 
 A special case of the static partials are HTML forms. By using `CachedStaticFormPartial` a `{{csrfToken}}` placeholder will be replaced with the Play CSRF token value.
