@@ -22,6 +22,7 @@ import org.mockito.Mockito._
 import org.mockito.{Matchers => MockitoMatchers}
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpecLike}
+import play.api.mvc.RequestHeader
 import play.api.test.FakeRequest
 import play.twirl.api.Html
 import uk.gov.hmrc.play.audit.http.HeaderCarrier
@@ -66,6 +67,7 @@ class CachedStaticHtmlPartialSpec extends WordSpecLike with Matchers with Mockit
     override def refreshAfter: Duration = cacheRefreshIntervalInSeconds.seconds
 
     override def expireAfter: Duration = cacheExpiryIntervalInHours.hours
+
   }
 
   implicit val request = FakeRequest()

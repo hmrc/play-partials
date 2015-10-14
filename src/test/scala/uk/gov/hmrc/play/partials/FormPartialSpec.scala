@@ -18,8 +18,10 @@ package uk.gov.hmrc.play.partials
 import org.mockito.Matchers._
 import org.mockito.Mockito._
 import org.mockito.{Matchers => MockitoMatchers}
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpecLike}
+import play.api.mvc.RequestHeader
 import play.api.test.{FakeApplication, FakeHeaders, FakeRequest, WithApplication}
 import play.filters.csrf.CSRF.Token
 import play.twirl.api.Html
@@ -28,7 +30,7 @@ import uk.gov.hmrc.play.http.{HttpException, HttpGet, HttpReads}
 
 import scala.concurrent.Future
 
-class FormPartialSpec extends WordSpecLike with Matchers with MockitoSugar with BeforeAndAfterEach {
+class FormPartialSpec extends WordSpecLike with Matchers with MockitoSugar with BeforeAndAfterEach with ScalaFutures {
 
   val fakeApplication = FakeApplication(additionalConfiguration = Map("csrf.sign.tokens" -> false))
 
@@ -40,6 +42,7 @@ class FormPartialSpec extends WordSpecLike with Matchers with MockitoSugar with 
     override val crypto = c _
 
     private def c(value: String) = value
+
   }
 
   override protected def beforeEach() = {
