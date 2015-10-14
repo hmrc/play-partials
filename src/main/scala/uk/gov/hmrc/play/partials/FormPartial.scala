@@ -19,7 +19,7 @@ package uk.gov.hmrc.play.partials
 import play.api.mvc.RequestHeader
 import play.twirl.api.Html
 
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Await
 
 
 trait FormPartial extends PartialRetriever with HeaderCarrierForPartialsConverter {
@@ -27,10 +27,6 @@ trait FormPartial extends PartialRetriever with HeaderCarrierForPartialsConverte
   override def processTemplate(template: Html, parameters: Map[String, String])(implicit request: RequestHeader): Html = {
     val formParameters = parameters + ("csrfToken" -> getCsrfToken)
     super.processTemplate(template, formParameters)
-  }
-
-  override protected def loadPartialFuture(url: String)(implicit request: RequestHeader) : Future[Partial] = {
-    httpGet.GET[Partial](urlWithCsrfToken(url))
   }
 
   override protected def loadPartial(url: String)(implicit request: RequestHeader) : Html = {

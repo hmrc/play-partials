@@ -43,30 +43,12 @@ class FormPartialSpec extends WordSpecLike with Matchers with MockitoSugar with 
 
     private def c(value: String) = value
 
-    def callPartialFuture(url: String)(implicit request: RequestHeader) = loadPartialFuture(url)
   }
 
   override protected def beforeEach() = {
     super.beforeEach()
 
     reset(mockHttpGet)
-  }
-
-  "load partial future" should {
-
-    "retrieve HTML from the given URL" in new WithApplication(fakeApplication) {
-      implicit val request = FakeRequest("GET", "/getform", FakeHeaders(), "", tags = Map(Token.RequestTag -> "token"))
-
-      private val partial1 = Partial(Some("title 1"), Html("some content A"))
-      private val partial2 = Partial(Some("title 2"), Html("some content B"))
-
-      when(mockHttpGet.GET[Partial](MockitoMatchers.eq("foo?csrfToken=token"))(any[HttpReads[Partial]], any[HeaderCarrier]))
-        .thenReturn(Future.successful(partial1))
-        .thenReturn(Future.successful(partial2))
-
-      partialProvider.callPartialFuture("foo").futureValue should be (partial1)
-      partialProvider.callPartialFuture("foo").futureValue should be (partial2)
-    }
   }
 
   "get" should {

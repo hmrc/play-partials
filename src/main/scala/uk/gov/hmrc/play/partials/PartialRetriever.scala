@@ -31,8 +31,6 @@ trait PartialRetriever extends TemplateProcessor {
 
   protected def loadPartial(url: String)(implicit request: RequestHeader) : Html
 
-  protected def loadPartialFuture(url: String)(implicit request: RequestHeader) : Future[Partial]
-
   def get(url: String, templateParameters: Map[String, String] = Map.empty, errorMessage: Html = HtmlFormat.empty)(implicit request: RequestHeader): Html = {
     try {
       processTemplate(loadPartial(url), templateParameters)
