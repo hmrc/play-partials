@@ -55,7 +55,7 @@ class CachedStaticHtmlPartialSpec extends WordSpecLike with Matchers with Mockit
     }
   }
 
-  val htmlPartial = new CachedStaticHtmlPartial {
+  val htmlPartial = new CachedStaticHtmlPartialRetriever {
 
     import scala.concurrent.duration._
 

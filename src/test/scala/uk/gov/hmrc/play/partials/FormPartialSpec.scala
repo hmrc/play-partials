@@ -34,7 +34,7 @@ class FormPartialSpec extends WordSpecLike with Matchers with MockitoSugar with 
 
   val mockHttpGet = mock[HttpGet]
 
-  val partialProvider = new FormPartial {
+  val partialProvider = new FormPartialRetriever {
     override val httpGet: HttpGet = mockHttpGet
 
     override val crypto = c _

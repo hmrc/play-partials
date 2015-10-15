@@ -27,7 +27,7 @@ import uk.gov.hmrc.play.audit.http.HeaderCarrier
 import scala.concurrent._
 import scala.concurrent.duration._
 
-trait CachedStaticHtmlPartial extends PartialRetriever {
+trait CachedStaticHtmlPartialRetriever extends PartialRetriever {
 
   val cacheTicker = new Ticker {
     override def read() = System.currentTimeMillis()
