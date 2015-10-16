@@ -20,16 +20,17 @@ import play.api.mvc.RequestHeader
 import play.twirl.api.Html
 
 import scala.concurrent.Await
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
-trait FormPartial extends PartialRetriever with HeaderCarrierForPartialsConverter {
+trait FormPartialRetriever extends PartialRetriever with HeaderCarrierForPartialsConverter {
 
   override def processTemplate(template: Html, parameters: Map[String, String])(implicit request: RequestHeader): Html = {
     val formParameters = parameters + ("csrfToken" -> getCsrfToken)
     super.processTemplate(template, formParameters)
   }
 
-  override protected def loadPartial(url: String)(implicit request: RequestHeader) : Html = {
-    Await.result(httpGet.GET[Html](urlWithCsrfToken(url)), partialRetrievalTimeout)
+  override protected def loadPartial(url: String)(implicit request: RequestHeader): HtmlPartial = {
+    Await.result(httpGet.GET[HtmlPartial](urlWithCsrfToken(url)).recover(HtmlPartial.connectionExceptionsAsHtmlPartialFailure), partialRetrievalTimeout)
   }
 
   protected def getCsrfToken(implicit request: RequestHeader): String = {

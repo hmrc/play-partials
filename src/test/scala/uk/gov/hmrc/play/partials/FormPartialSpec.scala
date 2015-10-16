@@ -34,7 +34,7 @@ class FormPartialSpec extends WordSpecLike with Matchers with MockitoSugar with 
 
   val mockHttpGet = mock[HttpGet]
 
-  val partialProvider = new FormPartial {
+  val partialProvider = new FormPartialRetriever {
     override val httpGet: HttpGet = mockHttpGet
 
     override val crypto = c _
@@ -54,42 +54,49 @@ class FormPartialSpec extends WordSpecLike with Matchers with MockitoSugar with 
 
       implicit val request = FakeRequest("GET", "/getform", FakeHeaders(), "", tags = Map(Token.RequestTag -> "token"))
 
-      when(mockHttpGet.GET[Html](MockitoMatchers.eq("foo?csrfToken=token"))(any[HttpReads[Html]], any[HeaderCarrier]))
-        .thenReturn(Future.successful(Html("some content A")))
-        .thenReturn(Future.successful(Html("some content B")))
+      when(mockHttpGet.GET[HtmlPartial](MockitoMatchers.eq("foo?csrfToken=token"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier]))
+        .thenReturn(Future.successful(HtmlPartial.Success(title = None, content = Html("some content A"))))
+        .thenReturn(Future.successful(HtmlPartial.Success(title = None, content = Html("some content B"))))
 
-      partialProvider.get("foo").body should be("some content A")
-      partialProvider.get("foo").body should be("some content B")
+      val p1 = partialProvider.getPartial("foo").asInstanceOf[HtmlPartial.Success]
+      p1.title should be (None)
+      p1.content.body should be ("some content A")
+
+      val p2 = partialProvider.getPartial("foo").asInstanceOf[HtmlPartial.Success]
+      p2.title should be (None)
+      p2.content.body should be ("some content B")
     }
 
     "retrieve HTML from the given URL, which includes query string" in new WithApplication(fakeApplication) {
 
       implicit val request = FakeRequest("GET", "/getform", FakeHeaders(), "", tags = Map(Token.RequestTag -> "token"))
 
-      when(mockHttpGet.GET[Html](MockitoMatchers.eq("foo?attrA=valA&attrB=valB&csrfToken=token"))(any[HttpReads[Html]], any[HeaderCarrier]))
-        .thenReturn(Future.successful(Html("some content C")))
+      when(mockHttpGet.GET[HtmlPartial](MockitoMatchers.eq("foo?attrA=valA&attrB=valB&csrfToken=token"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier]))
+        .thenReturn(Future.successful(HtmlPartial.Success(title = None, content = Html("some content C"))))
 
-      partialProvider.get("foo?attrA=valA&attrB=valB").body should be("some content C")
+      val p = partialProvider.getPartial("foo?attrA=valA&attrB=valB").asInstanceOf[HtmlPartial.Success]
+      p.title should be (None)
+      p.content.body should be ("some content C")
     }
 
-    "return HtmlFormat.empty when there is an exception retrieving the partial from the URL" in new WithApplication(fakeApplication) {
+    "return HtmlPartial.Failure when there is an exception retrieving the partial from the URL" in new WithApplication(fakeApplication) {
 
       implicit val request = FakeRequest("GET", "/getform", FakeHeaders(), "", tags = Map(Token.RequestTag -> "token"))
 
-      when(mockHttpGet.GET[Html](MockitoMatchers.eq("foo?csrfToken=token"))(any[HttpReads[Html]], any[HeaderCarrier]))
-        .thenReturn(Future.failed(new HttpException("error", 404)))
+      when(mockHttpGet.GET[HtmlPartial](MockitoMatchers.eq("foo?csrfToken=token"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier]))
+        .thenReturn(Future.successful(HtmlPartial.Failure))
 
-      partialProvider.get("foo").body should be("")
+      partialProvider.getPartial("foo") should be (HtmlPartial.Failure)
     }
 
     "return provided Html when there is an exception retrieving the partial from the URL" in new WithApplication(fakeApplication) {
 
       implicit val request = FakeRequest("GET", "/getform", FakeHeaders(), "", tags = Map(Token.RequestTag -> "token"))
 
-      when(mockHttpGet.GET[Html](MockitoMatchers.eq("foo?csrfToken=token"))(any[HttpReads[Html]], any[HeaderCarrier]))
-        .thenReturn(Future.failed(new HttpException("error", 404)))
+      when(mockHttpGet.GET[HtmlPartial](MockitoMatchers.eq("foo?csrfToken=token"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier]))
+        .thenReturn(Future.successful(HtmlPartial.Failure))
 
-      partialProvider.get(url = "foo", errorMessage = Html("something went wrong")).body should be("something went wrong")
+      partialProvider.getPartialContent(url = "foo", errorMessage = Html("something went wrong")).body should be("something went wrong")
     }
 
   }
