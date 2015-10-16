@@ -82,59 +82,54 @@ class CachedStaticHtmlPartialSpec extends WordSpecLike with Matchers with Mockit
 
     "retrieve HTML from the given URL" in {
 
-      when(mockHttpGet.GET[Html](MockitoMatchers.eq("foo"))(any[HttpReads[Html]], any[HeaderCarrier]))
-        .thenReturn(Future.successful(Html("some content A")))
-        .thenReturn(Future.successful(Html("some content B")))
+      when(mockHttpGet.GET[HtmlPartial](MockitoMatchers.eq("foo"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier]))
+        .thenReturn(Future.successful(HtmlPartial.Success(title = None, content = Html("some content A"))))
+        .thenReturn(Future.successful(HtmlPartial.Success(title = None, content = Html("some content B"))))
 
-      htmlPartial.get("foo").body should be("some content A")
+      htmlPartial.getPartial("foo").asInstanceOf[HtmlPartial.Success].content.body should be("some content A")
 
       testTicker.shiftTimeInSeconds(cacheRefreshIntervalInSeconds + 1)
       
-      htmlPartial.get("foo").body should be("some content B")
+      htmlPartial.getPartial("foo").asInstanceOf[HtmlPartial.Success].content.body should be("some content B")
     }
 
     "use stale value when there is an exception retrieving the partial from the URL" in {
-      when(mockHttpGet.GET[Html](MockitoMatchers.eq("foo"))(any[HttpReads[Html]], any[HeaderCarrier]))
-        .thenReturn(Future.successful(Html("some content C")))
-        .thenReturn(Future.failed(new HttpException("error", 404)))
+      when(mockHttpGet.GET[HtmlPartial](MockitoMatchers.eq("foo"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier]))
+        .thenReturn(Future.successful(HtmlPartial.Success(title = None, content = Html("some content C"))))
+        .thenReturn(Future.successful(HtmlPartial.Failure))
 
-      htmlPartial.get("foo").body should be("some content C")
+      htmlPartial.getPartial("foo").asInstanceOf[HtmlPartial.Success].content.body should be("some content C")
       testTicker.shiftTimeInSeconds(cacheRefreshIntervalInSeconds + 1)
-      htmlPartial.get("foo").body should be("some content C")
+      htmlPartial.getPartial("foo").asInstanceOf[HtmlPartial.Success].content.body should be("some content C")
 
-      verify(mockHttpGet, times(2)).GET[Html](MockitoMatchers.eq("foo"))(any[HttpReads[Html]], any[HeaderCarrier])
+      verify(mockHttpGet, times(2)).GET[HtmlPartial](MockitoMatchers.eq("foo"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier])
     }
 
-    "return HtmlFormat.empty when there is an exception retrieving the partial from the URL and we have no cached value yet" in {
-      when(mockHttpGet.GET[Html](MockitoMatchers.eq("foo"))(any[HttpReads[Html]], any[HeaderCarrier]))
-        .thenReturn(Future.failed(new HttpException("error", 404)))
+    "return HtmlPartial.Failure when there is an exception retrieving the partial from the URL and we have no cached value yet" in {
+      when(mockHttpGet.GET[HtmlPartial](MockitoMatchers.eq("foo"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier]))
+        .thenReturn(Future.successful(HtmlPartial.Failure))
 
-      htmlPartial.get("foo").body should be("")
+      htmlPartial.getPartial("foo") should be (HtmlPartial.Failure)
     }
 
     "return provided Html when there is an exception retrieving the partial from the URL and we have no cached value yet" in {
-      when(mockHttpGet.GET[Html](MockitoMatchers.eq("foo"))(any[HttpReads[Html]], any[HeaderCarrier]))
-        .thenReturn(Future.failed(new HttpException("error", 404)))
+      when(mockHttpGet.GET[HtmlPartial](MockitoMatchers.eq("foo"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier]))
+        .thenReturn(Future.successful(HtmlPartial.Failure))
 
       htmlPartial.get(url = "foo", errorMessage = Html("something went wrong")).body should be("something went wrong")
     }
 
     "return error message when stale value has expired and there is an exception reloading the cache" in {
 
-      when(mockHttpGet.GET[Html](MockitoMatchers.eq("foo"))(any[HttpReads[Html]], any[HeaderCarrier]))
-        .thenReturn(Future.successful(Html("some content D")))
-        .thenReturn(Future.failed(new HttpException("error", 404)))
+      when(mockHttpGet.GET[HtmlPartial](MockitoMatchers.eq("foo"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier]))
+        .thenReturn(Future.successful(HtmlPartial.Success(title = None, content = Html("some content D"))))
+        .thenReturn(Future.successful(HtmlPartial.Failure))
 
-      htmlPartial.get("foo").body should be("some content D")
+      htmlPartial.getPartial("foo").asInstanceOf[HtmlPartial.Success].content.body should be("some content D")
 
       testTicker.shiftTimeInHours(cacheExpiryIntervalInHours + 1)
 
       htmlPartial.get(url = "foo", errorMessage = Html("something went wrong")).body should be("something went wrong")
-
     }
-
-
   }
-
-
 }

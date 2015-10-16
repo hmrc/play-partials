@@ -26,6 +26,7 @@ import uk.gov.hmrc.play.audit.http.HeaderCarrier
 
 import scala.concurrent._
 import scala.concurrent.duration._
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 trait CachedStaticHtmlPartialRetriever extends PartialRetriever {
 
@@ -39,24 +40,28 @@ trait CachedStaticHtmlPartialRetriever extends PartialRetriever {
 
   def maximumEntries: Int = 1000
 
-  private[partials] lazy val cache: LoadingCache[String, Html] = CacheBuilder.newBuilder()
-    .maximumSize(maximumEntries)
-    .ticker(cacheTicker)
-    .refreshAfterWrite(refreshAfter.toMillis, TimeUnit.MILLISECONDS)
-    .expireAfterWrite(expireAfter.toMillis, TimeUnit.MILLISECONDS)
-    .build(new CacheLoader[String, Html]() {
-      override def load(url: String) : Html = {
-        fetchPartial(url)
-      } //TODO we could also override reload() and refresh the cache asynchronously: https://code.google.com/p/guava-libraries/wiki/CachesExplained#Refresh
-  })
+  private[partials] lazy val cache: LoadingCache[String, HtmlPartial.Success] =
+    CacheBuilder.newBuilder()
+      .maximumSize(maximumEntries)
+      .ticker(cacheTicker)
+      .refreshAfterWrite(refreshAfter.toMillis, TimeUnit.MILLISECONDS)
+      .expireAfterWrite(expireAfter.toMillis, TimeUnit.MILLISECONDS)
+      .build(new CacheLoader[String, HtmlPartial.Success]() {
+        def load(url: String) = fetchPartial(url) match {
+          case s: HtmlPartial.Success => s
+          case HtmlPartial.Failure    => throw new RuntimeException("Could not load partial")
+        } //TODO we could also override reload() and refresh the cache asynchronously: https://code.google.com/p/guava-libraries/wiki/CachesExplained#Refresh
+      })
 
-  override protected def loadPartial(url: String)(implicit request: RequestHeader) : Html = {
-    cache.get(url)
-  }
+  override protected def loadPartial(url: String)(implicit request: RequestHeader) =
+    try {
+      cache.get(url)
+    } catch {
+      case e: Exception => HtmlPartial.Failure
+    }
 
-  private def fetchPartial(url: String) : Html = {
+  private def fetchPartial(url: String): HtmlPartial = {
     implicit val hc = HeaderCarrier()
-    Await.result(httpGet.GET[Html](url), partialRetrievalTimeout)
+    Await.result(httpGet.GET[HtmlPartial](url).recover(HtmlPartial.connectionExceptionsAsHtmlPartialFailure), partialRetrievalTimeout)
   }
-
 }

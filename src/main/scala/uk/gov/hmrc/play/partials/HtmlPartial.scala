@@ -16,20 +16,21 @@
 
 package uk.gov.hmrc.play.partials
 
+import play.api.Logger
 import play.twirl.api.Html
 import play.utils.UriEncoding
 import uk.gov.hmrc.play.http.{GatewayTimeoutException, BadGatewayException, HttpReads, HttpResponse}
 
 sealed trait HtmlPartial {
-  def successfulContentOrElse(fallbackContent: Html): Html
+  def successfulContentOrElse(fallbackContent: => Html): Html
   def successfulContentOrEmpty: Html = successfulContentOrElse(Html(""))
 }
 object HtmlPartial {
   case class Success(title: Option[String], content: Html) extends HtmlPartial {
-    def successfulContentOrElse(fallbackContent: Html) = content
+    def successfulContentOrElse(fallbackContent: => Html) = content
   }
   case object Failure extends HtmlPartial {
-    def successfulContentOrElse(fallbackContent: Html) = fallbackContent
+    def successfulContentOrElse(fallbackContent: => Html) = fallbackContent
   }
 
   trait HtmlPartialHttpReads extends HttpReads[HtmlPartial] {
@@ -38,13 +39,17 @@ object HtmlPartial {
         title = response.header("X-Title").map(UriEncoding.decodePathSegment(_, "UTF-8")),
         content = Html(response.body)
       )
-      case _ => Failure
+      case other =>
+        Logger.warn(s"Failed to load partial from $url, received $other")
+        Failure
     }
   }
 
   implicit val readsPartial = new HtmlPartialHttpReads {}
 
   val connectionExceptionsAsHtmlPartialFailure: PartialFunction[Throwable, HtmlPartial] = {
-    case _: BadGatewayException | _: GatewayTimeoutException => HtmlPartial.Failure
+    case e@(_: BadGatewayException | _: GatewayTimeoutException) =>
+      Logger.warn(s"Failed to load partial", e)
+      HtmlPartial.Failure
   }
 }
