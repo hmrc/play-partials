@@ -24,8 +24,7 @@ import org.scalatest.mock.MockitoSugar
 import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpecLike}
 import play.api.test.FakeRequest
 import play.twirl.api.Html
-import uk.gov.hmrc.play.audit.http.HeaderCarrier
-import uk.gov.hmrc.play.http.{HttpException, HttpGet, HttpReads}
+import uk.gov.hmrc.play.http.{HeaderCarrier, HttpException, HttpGet, HttpReads}
 
 import scala.concurrent.Future
 

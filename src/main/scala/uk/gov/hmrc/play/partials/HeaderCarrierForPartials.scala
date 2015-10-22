@@ -18,7 +18,7 @@ package uk.gov.hmrc.play.partials
 
 import play.api.http.HeaderNames
 import play.api.mvc.{Cookies, RequestHeader, Session}
-import uk.gov.hmrc.play.audit.http.HeaderCarrier
+import uk.gov.hmrc.play.http.HeaderCarrier
 
 
 case class HeaderCarrierForPartials(hc: HeaderCarrier, encodedCookies: String) {

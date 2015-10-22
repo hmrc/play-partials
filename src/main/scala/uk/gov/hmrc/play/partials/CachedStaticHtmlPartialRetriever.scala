@@ -22,7 +22,7 @@ import com.google.common.base.Ticker
 import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
 import play.api.mvc.RequestHeader
 import play.twirl.api.Html
-import uk.gov.hmrc.play.audit.http.HeaderCarrier
+import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent._
 import scala.concurrent.duration._
