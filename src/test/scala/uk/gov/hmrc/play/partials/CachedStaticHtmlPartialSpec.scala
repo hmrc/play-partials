@@ -87,8 +87,11 @@ class CachedStaticHtmlPartialSpec extends WordSpecLike with Matchers with Mockit
 
       htmlPartial.getPartial("foo").asInstanceOf[HtmlPartial.Success].content.body should be("some content A")
 
+      // whilst still within the refresh time the same content should be returned from cache
+      htmlPartial.getPartial("foo").asInstanceOf[HtmlPartial.Success].content.body should be("some content A")
+
+      // now move beyond the refresh time
       testTicker.shiftTimeInSeconds(cacheRefreshIntervalInSeconds + 1)
-      
       htmlPartial.getPartial("foo").asInstanceOf[HtmlPartial.Success].content.body should be("some content B")
     }
 
@@ -129,6 +132,29 @@ class CachedStaticHtmlPartialSpec extends WordSpecLike with Matchers with Mockit
       testTicker.shiftTimeInHours(cacheExpiryIntervalInHours + 1)
 
       htmlPartial.get(url = "foo", errorMessage = Html("something went wrong")).body should be("something went wrong")
+    }
+
+    "invalidate cache entries when using real ticker" in {
+//   NOTE - yes this is a slow and ugly test - but it is catching a real bug that was not otherwise caught with the testTicker
+
+      val htmlPartialWithRealTicker = new CachedStaticHtmlPartialRetriever {
+        import scala.concurrent.duration._
+        override val httpGet: HttpGet = mockHttpGet
+        override def refreshAfter: Duration = 2.seconds
+      }
+
+      when(mockHttpGet.GET[HtmlPartial](MockitoMatchers.eq("foo"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier]))
+        .thenReturn(Future.successful(HtmlPartial.Success(title = None, content = Html("some content A"))))
+        .thenReturn(Future.successful(HtmlPartial.Success(title = None, content = Html("some content B"))))
+
+      htmlPartialWithRealTicker.getPartial("foo").asInstanceOf[HtmlPartial.Success].content.body should be("some content A")
+
+      // whilst still within the refresh time the same content should be returned from cache
+      htmlPartialWithRealTicker.getPartial("foo").asInstanceOf[HtmlPartial.Success].content.body should be("some content A")
+
+      // now move beyond the refresh time
+      Thread.sleep(2000)
+      htmlPartialWithRealTicker.getPartial("foo").asInstanceOf[HtmlPartial.Success].content.body should be("some content B")
     }
   }
 }
