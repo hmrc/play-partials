@@ -30,9 +30,7 @@ import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 trait CachedStaticHtmlPartialRetriever extends PartialRetriever {
 
-  val cacheTicker = new Ticker {
-    override def read() = System.currentTimeMillis()
-  }
+  val cacheTicker =  Ticker.systemTicker()
 
   def refreshAfter: Duration = 60.seconds
 
