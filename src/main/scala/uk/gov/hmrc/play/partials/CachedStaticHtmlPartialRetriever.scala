@@ -47,7 +47,7 @@ trait CachedStaticHtmlPartialRetriever extends PartialRetriever {
       .build(new CacheLoader[String, HtmlPartial.Success]() {
         def load(url: String) = fetchPartial(url) match {
           case s: HtmlPartial.Success => s
-          case HtmlPartial.Failure    => throw new RuntimeException("Could not load partial")
+          case f: HtmlPartial.Failure    => throw new RuntimeException("Could not load partial")
         } //TODO we could also override reload() and refresh the cache asynchronously: https://code.google.com/p/guava-libraries/wiki/CachesExplained#Refresh
       })
 
@@ -55,7 +55,7 @@ trait CachedStaticHtmlPartialRetriever extends PartialRetriever {
     try {
       cache.get(url)
     } catch {
-      case e: Exception => HtmlPartial.Failure
+      case e: Exception => HtmlPartial.Failure()
     }
 
   private def fetchPartial(url: String): HtmlPartial = {

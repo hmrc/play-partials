@@ -98,7 +98,7 @@ class CachedStaticHtmlPartialSpec extends WordSpecLike with Matchers with Mockit
     "use stale value when there is an exception retrieving the partial from the URL" in {
       when(mockHttpGet.GET[HtmlPartial](MockitoMatchers.eq("foo"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier]))
         .thenReturn(Future.successful(HtmlPartial.Success(title = None, content = Html("some content C"))))
-        .thenReturn(Future.successful(HtmlPartial.Failure))
+        .thenReturn(Future.successful(HtmlPartial.Failure()))
 
       htmlPartial.getPartial("foo").asInstanceOf[HtmlPartial.Success].content.body should be("some content C")
       testTicker.shiftTimeInSeconds(cacheRefreshIntervalInSeconds + 1)
@@ -109,14 +109,14 @@ class CachedStaticHtmlPartialSpec extends WordSpecLike with Matchers with Mockit
 
     "return HtmlPartial.Failure when there is an exception retrieving the partial from the URL and we have no cached value yet" in {
       when(mockHttpGet.GET[HtmlPartial](MockitoMatchers.eq("foo"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier]))
-        .thenReturn(Future.successful(HtmlPartial.Failure))
+        .thenReturn(Future.successful(HtmlPartial.Failure()))
 
-      htmlPartial.getPartial("foo") should be (HtmlPartial.Failure)
+      htmlPartial.getPartial("foo") should be (HtmlPartial.Failure())
     }
 
     "return provided Html when there is an exception retrieving the partial from the URL and we have no cached value yet" in {
       when(mockHttpGet.GET[HtmlPartial](MockitoMatchers.eq("foo"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier]))
-        .thenReturn(Future.successful(HtmlPartial.Failure))
+        .thenReturn(Future.successful(HtmlPartial.Failure()))
 
       htmlPartial.get(url = "foo", errorMessage = Html("something went wrong")).body should be("something went wrong")
     }
@@ -125,7 +125,7 @@ class CachedStaticHtmlPartialSpec extends WordSpecLike with Matchers with Mockit
 
       when(mockHttpGet.GET[HtmlPartial](MockitoMatchers.eq("foo"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier]))
         .thenReturn(Future.successful(HtmlPartial.Success(title = None, content = Html("some content D"))))
-        .thenReturn(Future.successful(HtmlPartial.Failure))
+        .thenReturn(Future.successful(HtmlPartial.Failure()))
 
       htmlPartial.getPartial("foo").asInstanceOf[HtmlPartial.Success].content.body should be("some content D")
 

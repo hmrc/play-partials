@@ -83,9 +83,9 @@ class FormPartialSpec extends WordSpecLike with Matchers with MockitoSugar with 
       implicit val request = FakeRequest("GET", "/getform", FakeHeaders(), "", tags = Map(Token.RequestTag -> "token"))
 
       when(mockHttpGet.GET[HtmlPartial](MockitoMatchers.eq("foo?csrfToken=token"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier]))
-        .thenReturn(Future.successful(HtmlPartial.Failure))
+        .thenReturn(Future.successful(HtmlPartial.Failure()))
 
-      partialProvider.getPartial("foo") should be (HtmlPartial.Failure)
+      partialProvider.getPartial("foo") should be (HtmlPartial.Failure())
     }
 
     "return provided Html when there is an exception retrieving the partial from the URL" in new WithApplication(fakeApplication) {
@@ -93,7 +93,7 @@ class FormPartialSpec extends WordSpecLike with Matchers with MockitoSugar with 
       implicit val request = FakeRequest("GET", "/getform", FakeHeaders(), "", tags = Map(Token.RequestTag -> "token"))
 
       when(mockHttpGet.GET[HtmlPartial](MockitoMatchers.eq("foo?csrfToken=token"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier]))
-        .thenReturn(Future.successful(HtmlPartial.Failure))
+        .thenReturn(Future.successful(HtmlPartial.Failure()))
 
       partialProvider.getPartialContent(url = "foo", errorMessage = Html("something went wrong")).body should be("something went wrong")
     }
