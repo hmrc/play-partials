@@ -19,7 +19,7 @@ package uk.gov.hmrc.play.partials
 import play.api.Logger
 import play.twirl.api.Html
 import play.utils.UriEncoding
-import uk.gov.hmrc.play.http.{GatewayTimeoutException, BadGatewayException, HttpReads, HttpResponse}
+import uk.gov.hmrc.play.http.{HttpException, _}
 
 sealed trait HtmlPartial {
   def successfulContentOrElse(fallbackContent: => Html): Html
@@ -29,7 +29,7 @@ object HtmlPartial {
   case class Success(title: Option[String], content: Html) extends HtmlPartial {
     def successfulContentOrElse(fallbackContent: => Html) = content
   }
-  case class Failure(body: String = "") extends HtmlPartial {
+  case class Failure(status: Option[Int] = None, body: String = "") extends HtmlPartial {
     def successfulContentOrElse(fallbackContent: => Html) = fallbackContent
   }
 
@@ -41,7 +41,7 @@ object HtmlPartial {
       )
       case other =>
         Logger.warn(s"Failed to load partial from $url, received $other")
-        Failure(response.body)
+        Failure(Some(other), response.body)
     }
   }
 
@@ -50,6 +50,6 @@ object HtmlPartial {
   val connectionExceptionsAsHtmlPartialFailure: PartialFunction[Throwable, HtmlPartial] = {
     case e@(_: BadGatewayException | _: GatewayTimeoutException) =>
       Logger.warn(s"Failed to load partial", e)
-      HtmlPartial.Failure()
+      HtmlPartial.Failure(Some(e.asInstanceOf[HttpException].responseCode))
   }
 }

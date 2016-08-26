@@ -17,7 +17,6 @@
 package uk.gov.hmrc.play.partials
 
 import org.scalatest.{Matchers, WordSpecLike}
-import play.api.libs.json.Json
 import play.utils.UriEncoding
 import uk.gov.hmrc.play.http.{BadGatewayException, GatewayTimeoutException, HttpResponse}
 
@@ -83,10 +82,10 @@ class HtmlPartialSpec extends WordSpecLike with Matchers {
 
   "HttpReads.connectionExceptionsAsHtmlPartialFailure" should {
     "Turn a BadGatewayException into a Failure" in {
-      HtmlPartial.connectionExceptionsAsHtmlPartialFailure(new BadGatewayException("sdf")) should be (HtmlPartial.Failure())
+      HtmlPartial.connectionExceptionsAsHtmlPartialFailure(new BadGatewayException("sdf")) should be (HtmlPartial.Failure(Some(502)))
     }
     "Turn a GatewayTimeoutException into a Failure" in {
-      HtmlPartial.connectionExceptionsAsHtmlPartialFailure(new GatewayTimeoutException("sdf")) should be (HtmlPartial.Failure())
+      HtmlPartial.connectionExceptionsAsHtmlPartialFailure(new GatewayTimeoutException("sdf")) should be (HtmlPartial.Failure(Some(504)))
     }
     "Ignore other types of exception" in {
       a [MatchError] should be thrownBy HtmlPartial.connectionExceptionsAsHtmlPartialFailure(new RuntimeException("sdf"))
