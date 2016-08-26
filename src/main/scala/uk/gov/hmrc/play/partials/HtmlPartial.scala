@@ -29,7 +29,7 @@ object HtmlPartial {
   case class Success(title: Option[String], content: Html) extends HtmlPartial {
     def successfulContentOrElse(fallbackContent: => Html) = content
   }
-  case object Failure extends HtmlPartial {
+  case class Failure(body: String = "") extends HtmlPartial {
     def successfulContentOrElse(fallbackContent: => Html) = fallbackContent
   }
 
@@ -41,7 +41,7 @@ object HtmlPartial {
       )
       case other =>
         Logger.warn(s"Failed to load partial from $url, received $other")
-        Failure
+        Failure(response.body)
     }
   }
 
@@ -50,6 +50,6 @@ object HtmlPartial {
   val connectionExceptionsAsHtmlPartialFailure: PartialFunction[Throwable, HtmlPartial] = {
     case e@(_: BadGatewayException | _: GatewayTimeoutException) =>
       Logger.warn(s"Failed to load partial", e)
-      HtmlPartial.Failure
+      HtmlPartial.Failure()
   }
 }

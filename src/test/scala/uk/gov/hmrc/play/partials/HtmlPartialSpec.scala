@@ -17,6 +17,7 @@
 package uk.gov.hmrc.play.partials
 
 import org.scalatest.{Matchers, WordSpecLike}
+import play.api.libs.json.Json
 import play.utils.UriEncoding
 import uk.gov.hmrc.play.http.{BadGatewayException, GatewayTimeoutException, HttpResponse}
 
@@ -58,22 +59,34 @@ class HtmlPartialSpec extends WordSpecLike with Matchers {
       partial.asInstanceOf[HtmlPartial.Success].content.body should be ("")
     }
 
-    "return Failure if the response status is between 400 and 599" in new TestCase {
+    "return Failure with the response body if the response status is between 400 and 599" in new TestCase {
+      val responseBody = """{"error": "it's all gone horribley wrong"}"""
       for (status <- 400 to 599) {
-        val response = HttpResponse(responseStatus = status)
+        val response = HttpResponse(responseStatus = status, responseString = Some(responseBody))
 
         val partial = HtmlPartial.readsPartial.read("someMethod", "someUrl", response)
-        partial should be (HtmlPartial.Failure)
+        partial should be (an [HtmlPartial.Failure])
+        partial.asInstanceOf[HtmlPartial.Failure].body should be (responseBody)
+      }
+    }
+
+    "return Failure with no body if the response status is between 400 and 599 but no response body is provided" in new TestCase {
+      for (status <- 400 to 599) {
+        val response = HttpResponse(responseStatus = status, responseString = Some(""))
+
+        val partial = HtmlPartial.readsPartial.read("someMethod", "someUrl", response)
+        partial should be (an [HtmlPartial.Failure])
+        partial.asInstanceOf[HtmlPartial.Failure].body should be (empty)
       }
     }
   }
 
   "HttpReads.connectionExceptionsAsHtmlPartialFailure" should {
     "Turn a BadGatewayException into a Failure" in {
-      HtmlPartial.connectionExceptionsAsHtmlPartialFailure(new BadGatewayException("sdf")) should be (HtmlPartial.Failure)
+      HtmlPartial.connectionExceptionsAsHtmlPartialFailure(new BadGatewayException("sdf")) should be (HtmlPartial.Failure())
     }
     "Turn a GatewayTimeoutException into a Failure" in {
-      HtmlPartial.connectionExceptionsAsHtmlPartialFailure(new GatewayTimeoutException("sdf")) should be (HtmlPartial.Failure)
+      HtmlPartial.connectionExceptionsAsHtmlPartialFailure(new GatewayTimeoutException("sdf")) should be (HtmlPartial.Failure())
     }
     "Ignore other types of exception" in {
       a [MatchError] should be thrownBy HtmlPartial.connectionExceptionsAsHtmlPartialFailure(new RuntimeException("sdf"))
