@@ -30,13 +30,13 @@ trait HeaderCarrierForPartialsConverter {
   def crypto: (String) => String
 
   private def encryptSessionCookie(rh: RequestHeader): String = {
-    val updatedCookies = rh.headers.getAll(HeaderNames.COOKIE).flatMap(Cookies.decode).flatMap {
+    val updatedCookies = rh.headers.getAll(HeaderNames.COOKIE).flatMap(Cookies.decodeCookieHeader).flatMap {
       case cookie if cookie.name == Session.COOKIE_NAME =>
         Some(cookie.copy(value = crypto(cookie.value)))
       case other => Some(other)
     }
 
-    Cookies.encode(updatedCookies)
+    Cookies.encodeCookieHeader(updatedCookies)
   }
 
   implicit def headerCarrierEncryptingSessionCookieFromRequest(implicit r: RequestHeader) = {

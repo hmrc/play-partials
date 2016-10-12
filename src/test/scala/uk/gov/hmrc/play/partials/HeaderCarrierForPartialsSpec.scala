@@ -37,14 +37,14 @@ class HeaderCarrierForPartialsSpec extends WordSpecLike with Matchers {
       def assertHeaderCarrier(implicit hcfp: HeaderCarrierForPartials): Unit = {
         val hc = hcfp.toHeaderCarrier
         val cookiesHeader = hc.headers.filter(_._1 == HeaderNames.COOKIE).head._2
-        Cookies.decode(cookiesHeader) should contain (Cookie("cookieName", "cookieValue"))
+        Cookies.decodeCookieHeader(cookiesHeader) should contain (Cookie("cookieName", "cookieValue"))
       }
 
-     val cookieWithUnencryptedSession = Cookies.encode(Seq(Cookie("cookieName", "cookieValue"), Cookie(Session.COOKIE_NAME, "unencrypted")))
+     val cookieWithUnencryptedSession = Cookies.encodeCookieHeader(Seq(Cookie("cookieName", "cookieValue"), Cookie(Session.COOKIE_NAME, "unencrypted")))
 
       val headers = new FakeHeaders(Seq(
-        ("headerName", Seq("headerValue")),
-        (HeaderNames.COOKIE, Seq(cookieWithUnencryptedSession))
+        ("headerName", "headerValue"),
+        (HeaderNames.COOKIE, cookieWithUnencryptedSession)
       ))
       implicit val request = FakeRequest("GET", "http:/localhost/", headers, Nil)
 
