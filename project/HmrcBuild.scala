@@ -46,7 +46,7 @@ private object AppDependencies {
     filters,
     "com.typesafe.play" %% "play" % PlayVersion.current,
     "com.google.guava" % "guava" % "19.0",
-    "uk.gov.hmrc" %% "http-verbs" % "6.0.0"
+    "uk.gov.hmrc" %% "http-verbs" % "6.1.0"
   )
 
   trait TestDependencies {
