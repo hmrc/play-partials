@@ -18,7 +18,8 @@ package uk.gov.hmrc.play.partials
 
 import play.api.http.HeaderNames
 import play.api.mvc.{Cookies, RequestHeader, Session}
-import uk.gov.hmrc.play.http.HeaderCarrier
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.HeaderCarrierConverter
 
 
 case class HeaderCarrierForPartials(hc: HeaderCarrier, encodedCookies: String) {
@@ -40,7 +41,7 @@ trait HeaderCarrierForPartialsConverter {
   }
 
   implicit def headerCarrierEncryptingSessionCookieFromRequest(implicit r: RequestHeader) = {
-    HeaderCarrierForPartials(HeaderCarrier.fromHeadersAndSession(r.headers, Some(r.session)), encryptSessionCookie(r))
+    HeaderCarrierForPartials(HeaderCarrierConverter.fromHeadersAndSession(r.headers, Some(r.session)), encryptSessionCookie(r))
   }
 
   implicit def headerCarrierForPartialsToHeaderCarrier(implicit hcwc: HeaderCarrierForPartials): HeaderCarrier = {
