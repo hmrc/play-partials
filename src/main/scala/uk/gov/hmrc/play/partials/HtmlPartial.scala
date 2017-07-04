@@ -19,6 +19,7 @@ package uk.gov.hmrc.play.partials
 import play.api.Logger
 import play.twirl.api.Html
 import play.utils.UriEncoding
+import uk.gov.hmrc.http.HttpResponse
 import uk.gov.hmrc.play.http.{HttpException, _}
 
 sealed trait HtmlPartial {

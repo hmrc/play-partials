@@ -32,7 +32,8 @@ object HmrcBuild extends Build {
       resolvers := Seq(
         Resolver.bintrayRepo("hmrc", "releases"),
         "typesafe-releases" at "http://repo.typesafe.com/typesafe/releases/"
-      )
+      ),
+      version := "100.0-SNAPSHOT"
     )
     .disablePlugins(sbt.plugins.JUnitXmlReportPlugin)
 }
@@ -46,7 +47,8 @@ private object AppDependencies {
     filters,
     "com.typesafe.play" %% "play" % PlayVersion.current,
     "com.google.guava" % "guava" % "19.0",
-    "uk.gov.hmrc" %% "http-verbs" % "6.4.0"
+    "uk.gov.hmrc" %% "http-verbs" % "100.0-SNAPSHOT",
+    "uk.gov.hmrc" %% "http-verbs-play-25" % "100.0-SNAPSHOT"
   )
 
   trait TestDependencies {
