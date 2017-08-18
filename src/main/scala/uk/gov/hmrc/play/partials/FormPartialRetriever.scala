@@ -21,7 +21,6 @@ import play.twirl.api.Html
 
 import scala.concurrent.Await
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
-import uk.gov.hmrc.play.http.ws.WSExtensions._
 
 trait FormPartialRetriever extends PartialRetriever with HeaderCarrierForPartialsConverter {
 
