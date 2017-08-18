@@ -24,19 +24,19 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.{FakeHeaders, FakeRequest, WithApplication}
 import play.filters.csrf.CSRF.Token
 import play.twirl.api.Html
-import uk.gov.hmrc.http.{CoreGet, HeaderCarrier, HttpGet, HttpReads}
-import uk.gov.hmrc.play.http.ws.WSGet
+import uk.gov.hmrc.http.{CoreGet, HeaderCarrier, HttpReads}
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
 class FormPartialSpec extends WordSpecLike with Matchers with MockitoSugar with BeforeAndAfterEach {
 
   val fakeApplication = new GuiceApplicationBuilder().configure("csrf.sign.tokens" -> false).build()
 
-  val mockHttpGet = mock[HttpGet with WSGet]
+  val mockHttpGet = mock[CoreGet]
 
   val partialProvider = new FormPartialRetriever {
-    override val httpGet: HttpGet with WSGet = mockHttpGet
+    override val httpGet: CoreGet = mockHttpGet
 
     override val crypto = c _
 

@@ -46,7 +46,6 @@ private object AppDependencies {
     filters,
     "com.typesafe.play" %% "play" % PlayVersion.current,
     "com.google.guava" % "guava" % "19.0",
-    "uk.gov.hmrc" %% "http-verbs" % "7.1.0",
     "uk.gov.hmrc" %% "http-verbs-play-25" % "0.6.0"
   )
 
