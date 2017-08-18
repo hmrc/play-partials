@@ -19,8 +19,7 @@ package uk.gov.hmrc.play.partials
 import play.api.mvc.RequestHeader
 import play.twirl.api.Html
 
-import scala.concurrent.Await
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+import scala.concurrent.{Await, ExecutionContext}
 
 trait FormPartialRetriever extends PartialRetriever with HeaderCarrierForPartialsConverter {
 
@@ -29,7 +28,7 @@ trait FormPartialRetriever extends PartialRetriever with HeaderCarrierForPartial
     super.processTemplate(template, formParameters)
   }
 
-  override protected def loadPartial(url: String)(implicit request: RequestHeader): HtmlPartial = {
+  override protected def loadPartial(url: String)(implicit request: RequestHeader, executionContext: ExecutionContext): HtmlPartial = {
     Await.result(httpGet.GET[HtmlPartial](urlWithCsrfToken(url)).recover(HtmlPartial.connectionExceptionsAsHtmlPartialFailure), partialRetrievalTimeout)
   }
 

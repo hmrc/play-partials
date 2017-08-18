@@ -24,17 +24,19 @@ import org.scalatest.mock.MockitoSugar
 import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpecLike}
 import play.api.test.FakeRequest
 import play.twirl.api.Html
-import uk.gov.hmrc.http.{HeaderCarrier, HttpGet, HttpReads}
-import uk.gov.hmrc.play.http.ws.WSGet
+import uk.gov.hmrc.http.{CoreGet, HeaderCarrier, HttpReads}
 
 import scala.concurrent.{ExecutionContext, Future}
+
+import scala.concurrent.ExecutionContext.Implicits.global
+
 
 class CachedStaticHtmlPartialSpec extends WordSpecLike with Matchers with MockitoSugar with BeforeAndAfterEach {
 
   val cacheExpiryIntervalInHours = 2
   val cacheRefreshIntervalInSeconds = 20
 
-  val mockHttpGet = mock[HttpGet with WSGet]
+  val mockHttpGet = mock[CoreGet]
 
   val testTicker = new Ticker {
 
@@ -59,7 +61,7 @@ class CachedStaticHtmlPartialSpec extends WordSpecLike with Matchers with Mockit
 
     import scala.concurrent.duration._
 
-    override val httpGet: HttpGet with WSGet = mockHttpGet
+    override val httpGet: CoreGet = mockHttpGet
 
     override val cacheTicker: Ticker = testTicker
 
