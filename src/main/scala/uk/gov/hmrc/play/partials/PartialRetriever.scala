@@ -20,7 +20,6 @@ import play.api.mvc.RequestHeader
 import play.twirl.api.{Html, HtmlFormat}
 import uk.gov.hmrc.http.CoreGet
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 trait PartialRetriever extends TemplateProcessor {
@@ -29,14 +28,16 @@ trait PartialRetriever extends TemplateProcessor {
 
   def partialRetrievalTimeout: Duration = 20.seconds
 
-  protected def loadPartial(url: String)(implicit request: RequestHeader, executionContext: ExecutionContext): HtmlPartial
+  protected def loadPartial(url: String)(implicit request: RequestHeader): HtmlPartial
 
-  def getPartial(url: String, templateParameters: Map[String, String] = Map.empty)(implicit request: RequestHeader, executionContext: ExecutionContext): HtmlPartial = loadPartial(url)
+  def getPartial(url: String, templateParameters: Map[String, String] = Map.empty)(implicit request: RequestHeader): HtmlPartial = loadPartial(url)
 
   @deprecated(message = "Use getPartial or getPartialContent instead", since = "16/10/15")
-  def get(url: String, templateParameters: Map[String, String] = Map.empty, errorMessage: Html = HtmlFormat.empty)(implicit request: RequestHeader, executionContext: ExecutionContext): Html =
+  def get(url: String, templateParameters: Map[String, String] = Map.empty, errorMessage: Html = HtmlFormat.empty)(implicit request: RequestHeader): Html =
     getPartialContent(url, templateParameters, errorMessage)
 
-  def getPartialContent(url: String, templateParameters: Map[String, String] = Map.empty, errorMessage: Html = HtmlFormat.empty)(implicit request: RequestHeader, executionContext: ExecutionContext): Html =
+
+  def getPartialContent(url: String, templateParameters: Map[String, String] = Map.empty, errorMessage: Html = HtmlFormat.empty)(implicit request: RequestHeader): Html = {
     getPartial(url, templateParameters).successfulContentOrElse(errorMessage)
+  }
 }

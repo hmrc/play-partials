@@ -26,7 +26,6 @@ import play.filters.csrf.CSRF.Token
 import play.twirl.api.Html
 import uk.gov.hmrc.http.{CoreGet, HeaderCarrier, HttpReads}
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
 class FormPartialSpec extends WordSpecLike with Matchers with MockitoSugar with BeforeAndAfterEach {

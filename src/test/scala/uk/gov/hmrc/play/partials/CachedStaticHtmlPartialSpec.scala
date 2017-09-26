@@ -28,8 +28,6 @@ import uk.gov.hmrc.http.{CoreGet, HeaderCarrier, HttpReads}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-
 
 class CachedStaticHtmlPartialSpec extends WordSpecLike with Matchers with MockitoSugar with BeforeAndAfterEach {
 

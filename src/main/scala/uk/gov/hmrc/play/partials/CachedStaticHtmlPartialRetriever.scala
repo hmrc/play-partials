@@ -51,7 +51,7 @@ trait CachedStaticHtmlPartialRetriever extends PartialRetriever {
         } //TODO we could also override reload() and refresh the cache asynchronously: https://code.google.com/p/guava-libraries/wiki/CachesExplained#Refresh
       })
 
-  override protected def loadPartial(url: String)(implicit request: RequestHeader, executionContext: ExecutionContext) =
+  override protected def loadPartial(url: String)(implicit request: RequestHeader) =
     try {
       cache.get(url)
     } catch {
