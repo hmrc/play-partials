@@ -8,7 +8,7 @@ val compileDependencies = Seq(
   filters,
   "com.typesafe.play"  %% "play"               % PlayVersion.current,
   "com.google.guava"   %  "guava"              % "19.0",
-  "uk.gov.hmrc"        %% "http-verbs-play-25" % "0.9.0"
+  "uk.gov.hmrc"        %% "http-verbs"         % "8.10.0-play-25"
 )
 
 val testDependencies = Seq(
