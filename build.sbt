@@ -8,7 +8,7 @@ val compileDependencies = Seq(
   filters,
   "com.typesafe.play"  %% "play"               % PlayVersion.current,
   "com.google.guava"   %  "guava"              % "19.0",
-  "uk.gov.hmrc"        %% "http-verbs"         % "8.10.0-play-25",
+  "uk.gov.hmrc"        %% "http-verbs"         % "9.1.0-play-25",
    // force dependencies due to security flaws found in jackson-databind < 2.9.x using XRay
    "com.fasterxml.jackson.core"     % "jackson-core"            % "2.9.7",
    "com.fasterxml.jackson.core"     % "jackson-databind"        % "2.9.7",
