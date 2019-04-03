@@ -17,10 +17,7 @@
 package uk.gov.hmrc.play.partials
 
 import com.google.common.base.Ticker
-import org.mockito.Matchers._
-import org.mockito.Mockito._
-import org.mockito.{Matchers => MockitoMatchers}
-import org.scalatest.mock.MockitoSugar
+import org.mockito.{ArgumentMatchersSugar, MockitoSugar}
 import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpecLike}
 import play.api.test.FakeRequest
 import play.twirl.api.Html
@@ -29,7 +26,7 @@ import uk.gov.hmrc.http.{CoreGet, HeaderCarrier, HttpReads}
 import scala.concurrent.{ExecutionContext, Future}
 
 
-class CachedStaticHtmlPartialSpec extends WordSpecLike with Matchers with MockitoSugar with BeforeAndAfterEach {
+class CachedStaticHtmlPartialSpec extends WordSpecLike with Matchers with MockitoSugar with BeforeAndAfterEach with ArgumentMatchersSugar {
 
   val cacheExpiryIntervalInHours = 2
   val cacheRefreshIntervalInSeconds = 20
@@ -82,9 +79,11 @@ class CachedStaticHtmlPartialSpec extends WordSpecLike with Matchers with Mockit
 
     "retrieve HTML from the given URL" in {
 
-      when(mockHttpGet.GET[HtmlPartial](MockitoMatchers.eq("foo"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
-        .thenReturn(Future.successful(HtmlPartial.Success(title = None, content = Html("some content A"))))
-        .thenReturn(Future.successful(HtmlPartial.Success(title = None, content = Html("some content B"))))
+      when(mockHttpGet.GET[HtmlPartial](eqTo("foo"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
+        .thenReturn(
+          Future.successful(HtmlPartial.Success(title = None, content = Html("some content A"))),
+          Future.successful(HtmlPartial.Success(title = None, content = Html("some content B")))
+        )
 
       htmlPartial.getPartial("foo").asInstanceOf[HtmlPartial.Success].content.body should be("some content A")
 
@@ -94,29 +93,31 @@ class CachedStaticHtmlPartialSpec extends WordSpecLike with Matchers with Mockit
       // now move beyond the refresh time
       testTicker.shiftTimeInSeconds(cacheRefreshIntervalInSeconds + 1)
       htmlPartial.getPartial("foo").asInstanceOf[HtmlPartial.Success].content.body should be("some content B")
+      verify(mockHttpGet, times(2)).GET[HtmlPartial](eqTo("foo"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext])
     }
 
     "use stale value when there is an exception retrieving the partial from the URL" in {
-      when(mockHttpGet.GET[HtmlPartial](MockitoMatchers.eq("foo"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
-        .thenReturn(Future.successful(HtmlPartial.Success(title = None, content = Html("some content C"))))
-        .thenReturn(Future.successful(HtmlPartial.Failure()))
+      when(mockHttpGet.GET[HtmlPartial](eqTo("foo"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
+        .thenReturn(
+          Future.successful(HtmlPartial.Success(title = None, content = Html("some content C"))),
+          Future.successful(HtmlPartial.Failure())
+        )
 
       htmlPartial.getPartial("foo").asInstanceOf[HtmlPartial.Success].content.body should be("some content C")
       testTicker.shiftTimeInSeconds(cacheRefreshIntervalInSeconds + 1)
       htmlPartial.getPartial("foo").asInstanceOf[HtmlPartial.Success].content.body should be("some content C")
 
-      verify(mockHttpGet, times(2)).GET[HtmlPartial](MockitoMatchers.eq("foo"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext])
     }
 
     "return HtmlPartial.Failure when there is an exception retrieving the partial from the URL and we have no cached value yet" in {
-      when(mockHttpGet.GET[HtmlPartial](MockitoMatchers.eq("foo"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
+      when(mockHttpGet.GET[HtmlPartial](eqTo("foo"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
         .thenReturn(Future.successful(HtmlPartial.Failure()))
 
-      htmlPartial.getPartial("foo") should be (HtmlPartial.Failure())
+      htmlPartial.getPartial("foo") should be(HtmlPartial.Failure())
     }
 
     "return provided Html when there is an exception retrieving the partial from the URL and we have no cached value yet" in {
-      when(mockHttpGet.GET[HtmlPartial](MockitoMatchers.eq("foo"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
+      when(mockHttpGet.GET[HtmlPartial](eqTo("foo"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
         .thenReturn(Future.successful(HtmlPartial.Failure()))
 
       htmlPartial.get(url = "foo", errorMessage = Html("something went wrong")).body should be("something went wrong")
@@ -124,9 +125,11 @@ class CachedStaticHtmlPartialSpec extends WordSpecLike with Matchers with Mockit
 
     "return error message when stale value has expired and there is an exception reloading the cache" in {
 
-      when(mockHttpGet.GET[HtmlPartial](MockitoMatchers.eq("foo"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
-        .thenReturn(Future.successful(HtmlPartial.Success(title = None, content = Html("some content D"))))
-        .thenReturn(Future.successful(HtmlPartial.Failure()))
+      when(mockHttpGet.GET[HtmlPartial](eqTo("foo"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
+        .thenReturn(
+          Future.successful(HtmlPartial.Success(title = None, content = Html("some content D"))),
+          Future.successful(HtmlPartial.Failure())
+        )
 
       htmlPartial.getPartial("foo").asInstanceOf[HtmlPartial.Success].content.body should be("some content D")
 
@@ -136,17 +139,22 @@ class CachedStaticHtmlPartialSpec extends WordSpecLike with Matchers with Mockit
     }
 
     "invalidate cache entries when using real ticker" in {
-//   NOTE - yes this is a slow and ugly test - but it is catching a real bug that was not otherwise caught with the testTicker
+      //   NOTE - yes this is a slow and ugly test - but it is catching a real bug that was not otherwise caught with the testTicker
 
       val htmlPartialWithRealTicker = new CachedStaticHtmlPartialRetriever {
+
         import scala.concurrent.duration._
+
         override val httpGet = mockHttpGet
+
         override def refreshAfter: Duration = 2.seconds
       }
 
-      when(mockHttpGet.GET[HtmlPartial](MockitoMatchers.eq("foo"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
-        .thenReturn(Future.successful(HtmlPartial.Success(title = None, content = Html("some content A"))))
-        .thenReturn(Future.successful(HtmlPartial.Success(title = None, content = Html("some content B"))))
+      when(mockHttpGet.GET[HtmlPartial](eqTo("foo"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
+        .thenReturn(
+          Future.successful(HtmlPartial.Success(title = None, content = Html("some content A"))),
+          Future.successful(HtmlPartial.Success(title = None, content = Html("some content B")))
+        )
 
       htmlPartialWithRealTicker.getPartial("foo").asInstanceOf[HtmlPartial.Success].content.body should be("some content A")
 
