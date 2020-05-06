@@ -10,7 +10,7 @@ val compileDependencies = PlayCrossCompilation.dependencies(
   play25 = Seq(
     "com.typesafe.play"  %% "play"               % "2.5.19",
     "com.typesafe.play"  %% "filters-helpers"    % "2.5.19",
-    "uk.gov.hmrc"        %% "http-verbs"         % "10.7.0-play-25",
+    "uk.gov.hmrc"        %% "http-verbs-play-25" % "10.14.0",
      // force dependencies due to security flaws found in jackson-databind < 2.9.x using XRay
      "com.fasterxml.jackson.core"     % "jackson-core"            % "2.9.7",
      "com.fasterxml.jackson.core"     % "jackson-databind"        % "2.9.7",
@@ -23,12 +23,12 @@ val compileDependencies = PlayCrossCompilation.dependencies(
   play26 = Seq(
     "com.typesafe.play"  %% "play"               % "2.6.20",
     "com.typesafe.play"  %% "filters-helpers"    % "2.6.20",
-    "uk.gov.hmrc"        %% "http-verbs"         % "10.7.0-play-26"
+    "uk.gov.hmrc"        %% "http-verbs-play-26" % "10.14.0"
   ),
   play27 = Seq(
     "com.typesafe.play"  %% "play"               % "2.7.4",
     "com.typesafe.play"  %% "filters-helpers"    % "2.7.4",
-    "uk.gov.hmrc"        %% "http-verbs"         % "10.7.0-play-27"
+    "uk.gov.hmrc"        %% "http-verbs-play-27" % "10.14.0"
   )
 )
 
@@ -71,4 +71,3 @@ lazy val playPartials = Project(libName, file("."))
     // https://github.com/scala/scala-parser-combinators/issues/197
     fork in Test := true
   )
-

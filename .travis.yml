@@ -2,14 +2,9 @@ language: scala
 
 matrix:
   include:
-    - scala: 2.11.12
-      env: PLAY_VERSION=2.5
-    - scala: 2.11.12
-      env: PLAY_VERSION=2.6
-    - scala: 2.12.8
-      env: PLAY_VERSION=2.6
-    - scala: 2.12.8
-      env: PLAY_VERSION=2.7
+    - env: PLAY_VERSION=2.5
+    - env: PLAY_VERSION=2.6
+    - env: PLAY_VERSION=2.7
 
 cache:
   directories:
@@ -18,7 +13,7 @@ cache:
 
 sudo: false
 script:
-  - sbt ++$TRAVIS_SCALA_VERSION -J-XX:ReservedCodeCacheSize=256M test
+  - sbt -J-XX:ReservedCodeCacheSize=256M +test
 
   # Tricks to avoid unnecessary cache updates
   - find $HOME/.sbt -name "*.lock" -delete
