@@ -10,7 +10,7 @@ val compileDependencies = PlayCrossCompilation.dependencies(
   play25 = Seq(
     "com.typesafe.play"  %% "play"               % "2.5.19",
     "com.typesafe.play"  %% "filters-helpers"    % "2.5.19",
-    "uk.gov.hmrc"        %% "http-verbs-play-25" % "10.14.0",
+    "uk.gov.hmrc"        %% "http-verbs-play-25" % "12.1.0",
      // force dependencies due to security flaws found in jackson-databind < 2.9.x using XRay
      "com.fasterxml.jackson.core"     % "jackson-core"            % "2.9.7",
      "com.fasterxml.jackson.core"     % "jackson-databind"        % "2.9.7",
@@ -23,39 +23,39 @@ val compileDependencies = PlayCrossCompilation.dependencies(
   play26 = Seq(
     "com.typesafe.play"  %% "play"               % "2.6.20",
     "com.typesafe.play"  %% "filters-helpers"    % "2.6.20",
-    "uk.gov.hmrc"        %% "http-verbs-play-26" % "10.14.0"
+    "uk.gov.hmrc"        %% "http-verbs-play-26" % "12.1.0"
   ),
   play27 = Seq(
     "com.typesafe.play"  %% "play"               % "2.7.4",
     "com.typesafe.play"  %% "filters-helpers"    % "2.7.4",
-    "uk.gov.hmrc"        %% "http-verbs-play-27" % "10.14.0"
+    "uk.gov.hmrc"        %% "http-verbs-play-27" % "12.1.0"
   )
 )
 
 val testDependencies = PlayCrossCompilation.dependencies(
   shared = Seq(
-    "org.scalatest"     %% "scalatest"     % "3.0.2"             % "test",
-    "org.pegdown"       %  "pegdown"       % "1.4.2"             % "test",
-    "org.mockito"       %% "mockito-scala" % "1.2.0"             % "test"
+    "org.scalatest"     %% "scalatest"     % "3.0.2"  % Test,
+    "org.pegdown"       %  "pegdown"       % "1.4.2"  % Test,
+    "org.mockito"       %% "mockito-scala" % "1.2.0"  % Test
   ),
   play25 = Seq(
-    "com.typesafe.play" %% "play-test"   % "2.5.19"            % "test",
-    "com.typesafe.play" %% "play-specs2" % "2.5.19"            % "test"
+    "com.typesafe.play" %% "play-test"     % "2.5.19" % Test,
+    "com.typesafe.play" %% "play-specs2"   % "2.5.19" % Test
   ),
   play26 = Seq(
-    "com.typesafe.play" %% "play-test"   % "2.6.20"            % "test",
-    "com.typesafe.play" %% "play-specs2" % "2.6.20"            % "test"
+    "com.typesafe.play" %% "play-test"     % "2.6.20" % Test,
+    "com.typesafe.play" %% "play-specs2"   % "2.6.20" % Test
   ),
   play27 = Seq(
-    "com.typesafe.play" %% "play-test"   % "2.7.4"            % "test",
-    "com.typesafe.play" %% "play-specs2" % "2.7.4"            % "test"
+    "com.typesafe.play" %% "play-test"     % "2.7.4"  % Test,
+    "com.typesafe.play" %% "play-specs2"   % "2.7.4"  % Test
   )
 )
 
 lazy val playPartials = Project(libName, file("."))
   .enablePlugins(SbtAutoBuildPlugin, SbtGitVersioning, SbtArtifactory)
   .settings(
-    majorVersion := 6,
+    majorVersion := 7,
     makePublicallyAvailableOnBintray := true,
     scalaVersion := "2.11.12",
     libraryDependencies ++= compileDependencies ++ testDependencies,
