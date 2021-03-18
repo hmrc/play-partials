@@ -19,15 +19,23 @@ package uk.gov.hmrc.play.partials
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.http.HeaderNames
-import play.api.mvc.{Cookie, Cookies, Session}
+import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.mvc.{Cookie, Cookies, CookieHeaderEncoding, SessionCookieBaker}
 import play.api.test.{FakeHeaders, FakeRequest}
 
 class HeaderCarrierForPartialsSpec extends AnyWordSpecLike with Matchers {
 
-  object Converter extends HeaderCarrierForPartialsConverter {
-    def encrypt(value: String) = value
+  val fakeApplication = new GuiceApplicationBuilder().configure("csrf.sign.tokens" -> false).build()
 
-    override def crypto: (String) => String = encrypt
+  object Converter extends HeaderCarrierForPartialsConverter {
+    override def crypto: String => String =
+      s => s
+
+    override val sessionCookieBaker: SessionCookieBaker =
+      fakeApplication.injector.instanceOf[SessionCookieBaker]
+
+    override val cookieHeaderEncoding: CookieHeaderEncoding =
+      fakeApplication.injector.instanceOf[CookieHeaderEncoding]
   }
 
   "HeaderCarrierForPartials" should {
@@ -41,7 +49,7 @@ class HeaderCarrierForPartialsSpec extends AnyWordSpecLike with Matchers {
         Cookies.decodeCookieHeader(cookiesHeader) should contain (Cookie("cookieName", "cookieValue"))
       }
 
-     val cookieWithUnencryptedSession = Cookies.encodeCookieHeader(Seq(Cookie("cookieName", "cookieValue"), Cookie(Session.COOKIE_NAME, "unencrypted")))
+     val cookieWithUnencryptedSession = Cookies.encodeCookieHeader(Seq(Cookie("cookieName", "cookieValue"), Cookie(sessionCookieBaker.COOKIE_NAME, "unencrypted")))
 
       val headers = new FakeHeaders(Seq(
         ("headerName", "headerValue"),

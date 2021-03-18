@@ -27,6 +27,8 @@ import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration.{Duration, DurationLong}
 
 
+// TODO provide injectable instances
+
 trait CachedStaticHtmlPartialRetriever extends PartialRetriever {
 
   val cacheTicker =  Ticker.systemTicker()

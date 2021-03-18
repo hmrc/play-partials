@@ -17,35 +17,38 @@
 package uk.gov.hmrc.play.partials
 
 import play.api.http.HeaderNames
-import play.api.mvc.{Cookies, RequestHeader, Session}
+import play.api.mvc.{CookieHeaderEncoding, RequestHeader, SessionCookieBaker}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
 
 
 case class HeaderCarrierForPartials(hc: HeaderCarrier, encodedCookies: String) {
-  def toHeaderCarrier = hc.copy(extraHeaders = Seq(HeaderNames.COOKIE -> encodedCookies))
+  def toHeaderCarrier =
+    hc.copy(extraHeaders = Seq(HeaderNames.COOKIE -> encodedCookies))
 }
 
 trait HeaderCarrierForPartialsConverter {
 
-  def crypto: (String) => String
+  def crypto: String => String
+  def sessionCookieBaker: SessionCookieBaker
+  def cookieHeaderEncoding: CookieHeaderEncoding
 
   private def encryptSessionCookie(rh: RequestHeader): String = {
-    val updatedCookies = rh.headers.getAll(HeaderNames.COOKIE).flatMap(Cookies.decodeCookieHeader).flatMap {
-      case cookie if cookie.name == Session.COOKIE_NAME =>
-        Some(cookie.copy(value = crypto(cookie.value)))
-      case other => Some(other)
-    }
+    val updatedCookies =
+      rh.headers.getAll(HeaderNames.COOKIE)
+        .flatMap(cookieHeaderEncoding.decodeCookieHeader)
+        .map {
+          case cookie if cookie.name == sessionCookieBaker.COOKIE_NAME =>
+            cookie.copy(value = crypto(cookie.value))
+          case other => other
+        }
 
-    Cookies.encodeCookieHeader(updatedCookies)
+    cookieHeaderEncoding.encodeCookieHeader(updatedCookies)
   }
 
-  implicit def headerCarrierEncryptingSessionCookieFromRequest(implicit r: RequestHeader) = {
+  implicit def headerCarrierEncryptingSessionCookieFromRequest(implicit r: RequestHeader): HeaderCarrierForPartials =
     HeaderCarrierForPartials(HeaderCarrierConverter.fromRequestAndSession(r, r.session), encryptSessionCookie(r))
-  }
 
-  implicit def headerCarrierForPartialsToHeaderCarrier(implicit hcwc: HeaderCarrierForPartials): HeaderCarrier = {
+  implicit def headerCarrierForPartialsToHeaderCarrier(implicit hcwc: HeaderCarrierForPartials): HeaderCarrier =
     hcwc.toHeaderCarrier
-  }
-
 }

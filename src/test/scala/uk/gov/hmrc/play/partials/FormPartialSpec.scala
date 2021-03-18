@@ -19,6 +19,7 @@ import org.mockito.{ArgumentMatchersSugar, MockitoSugar}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
+import play.api.mvc.{CookieHeaderEncoding, SessionCookieBaker}
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.{FakeHeaders, FakeRequest, WithApplication}
 import play.twirl.api.Html
@@ -42,9 +43,17 @@ class FormPartialSpec
   val mockHttpGet = mock[CoreGet]
 
   val partialProvider = new FormPartialRetriever {
-    override val httpGet: CoreGet = mockHttpGet
+    override val httpGet: CoreGet =
+      mockHttpGet
 
-    override val crypto = s => s
+    override val crypto: String => String =
+      s => s
+
+    override val sessionCookieBaker: SessionCookieBaker =
+      fakeApplication.injector.instanceOf[SessionCookieBaker]
+
+    override val cookieHeaderEncoding: CookieHeaderEncoding =
+      fakeApplication.injector.instanceOf[CookieHeaderEncoding]
   }
 
   override protected def beforeEach() = {
