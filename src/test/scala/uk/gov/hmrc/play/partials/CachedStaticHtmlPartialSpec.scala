@@ -18,7 +18,9 @@ package uk.gov.hmrc.play.partials
 
 import com.google.common.base.Ticker
 import org.mockito.{ArgumentMatchersSugar, MockitoSugar}
-import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpecLike}
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.test.FakeRequest
 import play.twirl.api.Html
 import uk.gov.hmrc.http.{CoreGet, HeaderCarrier, HttpReads}
@@ -26,7 +28,13 @@ import uk.gov.hmrc.http.{CoreGet, HeaderCarrier, HttpReads}
 import scala.concurrent.{ExecutionContext, Future}
 
 
-class CachedStaticHtmlPartialSpec extends WordSpecLike with Matchers with MockitoSugar with BeforeAndAfterEach with ArgumentMatchersSugar {
+class CachedStaticHtmlPartialSpec
+  extends AnyWordSpecLike
+     with Matchers
+     with MockitoSugar
+     with BeforeAndAfterEach
+     with ArgumentMatchersSugar {
+
   import scala.concurrent.ExecutionContext.Implicits.global
 
   val cacheExpiryIntervalInHours = 2

@@ -18,8 +18,6 @@ package uk.gov.hmrc.play.partials
 
 import play.api.mvc.RequestHeader
 import play.twirl.api.Html
-import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.HeaderCarrierConverter
 
 import scala.concurrent.{Await, ExecutionContext}
 

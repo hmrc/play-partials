@@ -16,7 +16,9 @@
 
 package uk.gov.hmrc.play.partials
 import org.mockito.{ArgumentMatchersSugar, MockitoSugar}
-import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpecLike}
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.{FakeHeaders, FakeRequest, WithApplication}
 import play.twirl.api.Html
@@ -26,7 +28,13 @@ import play.filters.csrf.CSRF
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class FormPartialSpec extends WordSpecLike with Matchers with MockitoSugar with ArgumentMatchersSugar with BeforeAndAfterEach {
+class FormPartialSpec
+  extends AnyWordSpecLike
+     with Matchers
+     with MockitoSugar
+     with ArgumentMatchersSugar
+     with BeforeAndAfterEach {
+
   import scala.concurrent.ExecutionContext.Implicits.global
 
   val fakeApplication = new GuiceApplicationBuilder().configure("csrf.sign.tokens" -> false).build()

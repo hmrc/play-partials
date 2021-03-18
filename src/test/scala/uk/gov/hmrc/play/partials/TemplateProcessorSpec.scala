@@ -16,18 +16,17 @@
 
 package uk.gov.hmrc.play.partials
 
-import org.scalatest.{Matchers, WordSpecLike}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.test.FakeRequest
 import play.twirl.api.Html
 
-class TemplateProcessorSpec extends WordSpecLike with Matchers {
-
+class TemplateProcessorSpec extends AnyWordSpecLike with Matchers {
   implicit val request = FakeRequest()
 
   val processor = new TemplateProcessor {}
 
   "processTemplate" should {
-
     "return the original template if there is no parameter match" in {
       val template =
         """
@@ -50,7 +49,5 @@ class TemplateProcessorSpec extends WordSpecLike with Matchers {
 
       processor.processTemplate(Html(template), Map("csrfToken" -> "token", "name" -> "John")).body shouldBe expectedResult
     }
-
   }
-
 }

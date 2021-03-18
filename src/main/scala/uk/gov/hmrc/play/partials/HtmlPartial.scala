@@ -27,6 +27,8 @@ sealed trait HtmlPartial {
   def successfulContentOrEmpty: Html = successfulContentOrElse(Html(""))
 }
 object HtmlPartial {
+  private val logger = Logger(getClass)
+
   case class Success(title: Option[String], content: Html) extends HtmlPartial {
     def successfulContentOrElse(fallbackContent: => Html) = content
   }
@@ -35,13 +37,14 @@ object HtmlPartial {
   }
 
   trait HtmlPartialHttpReads extends HttpReads[HtmlPartial] {
+
     def read(method: String, url: String, response: HttpResponse) = response.status match {
       case s if s >= 200 && s <= 299 => Success(
         title = response.header("X-Title").map(UriEncoding.decodePathSegment(_, "UTF-8")),
         content = Html(response.body)
       )
       case other =>
-        Logger.warn(s"Failed to load partial from $url, received $other")
+        logger.warn(s"Failed to load partial from $url, received $other")
         Failure(Some(other), response.body)
     }
   }
@@ -50,7 +53,7 @@ object HtmlPartial {
 
   val connectionExceptionsAsHtmlPartialFailure: PartialFunction[Throwable, HtmlPartial] = {
     case e@(_: BadGatewayException | _: GatewayTimeoutException) =>
-      Logger.warn(s"Failed to load partial", e)
+      logger.warn(s"Failed to load partial", e)
       HtmlPartial.Failure(Some(e.asInstanceOf[HttpException].responseCode))
   }
 }

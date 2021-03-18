@@ -16,12 +16,13 @@
 
 package uk.gov.hmrc.play.partials
 
-import org.scalatest.{Matchers, WordSpecLike}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.http.HeaderNames
 import play.api.mvc.{Cookie, Cookies, Session}
 import play.api.test.{FakeHeaders, FakeRequest}
 
-class HeaderCarrierForPartialsSpec extends WordSpecLike with Matchers {
+class HeaderCarrierForPartialsSpec extends AnyWordSpecLike with Matchers {
 
   object Converter extends HeaderCarrierForPartialsConverter {
     def encrypt(value: String) = value
