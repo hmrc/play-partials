@@ -22,6 +22,7 @@ import play.api.http.HeaderNames
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.{Cookie, Cookies, CookieHeaderEncoding, SessionCookieBaker}
 import play.api.test.{FakeHeaders, FakeRequest}
+import uk.gov.hmrc.http.HeaderCarrier
 
 class HeaderCarrierForPartialsSpec extends AnyWordSpecLike with Matchers {
 
@@ -29,7 +30,7 @@ class HeaderCarrierForPartialsSpec extends AnyWordSpecLike with Matchers {
 
   object Converter extends HeaderCarrierForPartialsConverter {
     override def crypto: String => String =
-      s => s
+      s => s.reverse
 
     override val sessionCookieBaker: SessionCookieBaker =
       fakeApplication.injector.instanceOf[SessionCookieBaker]
@@ -40,24 +41,30 @@ class HeaderCarrierForPartialsSpec extends AnyWordSpecLike with Matchers {
 
   "HeaderCarrierForPartials" should {
     "encrypt request cookie" in {
+     val encryptableCookieName =
+       Converter.sessionCookieBaker.COOKIE_NAME
 
-      import Converter._
+     val cookieWithUnencryptedSession =
+       Cookies.encodeCookieHeader(Seq(
+         Cookie("cookieName", "cookieValue"),
+         Cookie(encryptableCookieName, "unencrypted")
+       ))
 
-      def assertHeaderCarrier(implicit hcfp: HeaderCarrierForPartials): Unit = {
-        val hc = hcfp.toHeaderCarrier
-        val cookiesHeader = hc.headers(Seq(HeaderNames.COOKIE)).head._2
-        Cookies.decodeCookieHeader(cookiesHeader) should contain (Cookie("cookieName", "cookieValue"))
-      }
+      val headers =
+        new FakeHeaders(Seq(
+          ("headerName", "headerValue"),
+          (HeaderNames.COOKIE, cookieWithUnencryptedSession)
+        ))
 
-     val cookieWithUnencryptedSession = Cookies.encodeCookieHeader(Seq(Cookie("cookieName", "cookieValue"), Cookie(sessionCookieBaker.COOKIE_NAME, "unencrypted")))
+      val request =
+        FakeRequest("GET", "http:/localhost/", headers, Nil)
 
-      val headers = new FakeHeaders(Seq(
-        ("headerName", "headerValue"),
-        (HeaderNames.COOKIE, cookieWithUnencryptedSession)
-      ))
-      implicit val request = FakeRequest("GET", "http:/localhost/", headers, Nil)
+      val hc = Converter.headerCarrierForPartials(request)
 
-      assertHeaderCarrier
+      val cookiesHeader = hc.headers(Seq(HeaderNames.COOKIE)).head._2
+      val cookies = Cookies.decodeCookieHeader(cookiesHeader)
+      cookies should contain (Cookie("cookieName", "cookieValue"))
+      cookies should contain (Cookie(encryptableCookieName, Converter.crypto("unencrypted")))
     }
   }
 }

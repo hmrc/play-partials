@@ -17,15 +17,10 @@
 package uk.gov.hmrc.play.partials
 
 import play.api.http.HeaderNames
-import play.api.mvc.{CookieHeaderEncoding, RequestHeader, SessionCookieBaker}
+import play.api.mvc.{Cookie, CookieHeaderEncoding, RequestHeader, SessionCookieBaker}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
 
-
-case class HeaderCarrierForPartials(hc: HeaderCarrier, encodedCookies: String) {
-  def toHeaderCarrier =
-    hc.copy(extraHeaders = Seq(HeaderNames.COOKIE -> encodedCookies))
-}
 
 trait HeaderCarrierForPartialsConverter {
 
@@ -33,10 +28,14 @@ trait HeaderCarrierForPartialsConverter {
   def sessionCookieBaker: SessionCookieBaker
   def cookieHeaderEncoding: CookieHeaderEncoding
 
-  private def encryptSessionCookie(rh: RequestHeader): String = {
-    val updatedCookies =
-      rh.headers.getAll(HeaderNames.COOKIE)
+  private def encryptSessionCookie(request: RequestHeader): String = {
+    val cookies: Seq[Cookie] =
+      request
+        .headers.getAll(HeaderNames.COOKIE)
         .flatMap(cookieHeaderEncoding.decodeCookieHeader)
+
+    val updatedCookies =
+      cookies
         .map {
           case cookie if cookie.name == sessionCookieBaker.COOKIE_NAME =>
             cookie.copy(value = crypto(cookie.value))
@@ -46,9 +45,9 @@ trait HeaderCarrierForPartialsConverter {
     cookieHeaderEncoding.encodeCookieHeader(updatedCookies)
   }
 
-  implicit def headerCarrierEncryptingSessionCookieFromRequest(implicit r: RequestHeader): HeaderCarrierForPartials =
-    HeaderCarrierForPartials(HeaderCarrierConverter.fromRequestAndSession(r, r.session), encryptSessionCookie(r))
-
-  implicit def headerCarrierForPartialsToHeaderCarrier(implicit hcwc: HeaderCarrierForPartials): HeaderCarrier =
-    hcwc.toHeaderCarrier
+  def headerCarrierForPartials(request: RequestHeader): HeaderCarrier = {
+    val hc = HeaderCarrierConverter.fromRequestAndSession(request, request.session)
+    val encrypedCookies = encryptSessionCookie(request)
+    hc.copy(otherHeaders = hc.otherHeaders.filterNot(_._1 == HeaderNames.COOKIE) ++ Seq(HeaderNames.COOKIE -> encrypedCookies))
+  }
 }

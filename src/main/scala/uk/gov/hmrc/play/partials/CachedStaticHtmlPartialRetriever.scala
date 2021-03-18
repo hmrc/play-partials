@@ -23,7 +23,7 @@ import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
 import play.api.mvc.RequestHeader
 import uk.gov.hmrc.http.HeaderCarrier
 
-import scala.concurrent.{Await, ExecutionContext}
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration.{Duration, DurationLong}
 
 
@@ -54,9 +54,9 @@ trait CachedStaticHtmlPartialRetriever extends PartialRetriever {
 
   override protected def loadPartial(url: String)(implicit ec: ExecutionContext, request: RequestHeader) =
     try {
-      cache.get(url)
+      Future.successful(cache.get(url))
     } catch {
-      case e: Exception => HtmlPartial.Failure()
+      case e: Exception => Future.successful(HtmlPartial.Failure())
     }
 
   private def fetchPartial(url: String): HtmlPartial = {

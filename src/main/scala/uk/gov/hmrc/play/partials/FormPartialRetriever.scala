@@ -19,7 +19,7 @@ package uk.gov.hmrc.play.partials
 import play.api.mvc.RequestHeader
 import play.twirl.api.Html
 
-import scala.concurrent.{Await, ExecutionContext}
+import scala.concurrent.{ExecutionContext, Future}
 
 // TODO provide injectable instances
 
@@ -30,11 +30,10 @@ trait FormPartialRetriever extends PartialRetriever with HeaderCarrierForPartial
     super.processTemplate(template, formParameters)
   }
 
-  override protected def loadPartial(url: String)(implicit ec: ExecutionContext, request: RequestHeader): HtmlPartial =
-    Await.result(
-      httpGet.GET[HtmlPartial](urlWithCsrfToken(url)).recover(HtmlPartial.connectionExceptionsAsHtmlPartialFailure),
-      partialRetrievalTimeout
-    )
+  override protected def loadPartial(url: String)(implicit ec: ExecutionContext, request: RequestHeader): Future[HtmlPartial] = {
+    implicit val hc = headerCarrierForPartials(request)
+    httpGet.GET[HtmlPartial](urlWithCsrfToken(url)).recover(HtmlPartial.connectionExceptionsAsHtmlPartialFailure)
+  }
 
   protected def getCsrfToken(implicit request: RequestHeader): String = {
     import play.filters.csrf.CSRF

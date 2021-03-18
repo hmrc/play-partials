@@ -20,7 +20,7 @@ import play.api.mvc.RequestHeader
 import play.twirl.api.{Html, HtmlFormat}
 import uk.gov.hmrc.http.CoreGet
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.{Duration, DurationLong}
 
 trait PartialRetriever extends TemplateProcessor {
@@ -29,15 +29,30 @@ trait PartialRetriever extends TemplateProcessor {
 
   def partialRetrievalTimeout: Duration = 20.seconds
 
-  protected def loadPartial(url: String)(implicit ec: ExecutionContext, request: RequestHeader): HtmlPartial
+  protected def loadPartial(
+    url: String
+  )(implicit
+    ec     : ExecutionContext,
+    request: RequestHeader
+  ): Future[HtmlPartial]
 
-  def getPartial(url: String, templateParameters: Map[String, String] = Map.empty)(implicit ec: ExecutionContext, request: RequestHeader): HtmlPartial =
+  def getPartial(
+    url: String,
+    templateParameters: Map[String, String] = Map.empty
+  )(implicit
+    ec     : ExecutionContext,
+    request: RequestHeader
+  ): Future[HtmlPartial] =
     loadPartial(url)
 
-  @deprecated(message = "Use getPartial or getPartialContent instead", since = "16/10/15")
-  def get(url: String, templateParameters: Map[String, String] = Map.empty, errorMessage: Html = HtmlFormat.empty)(implicit ec: ExecutionContext, request: RequestHeader): Html =
-    getPartialContent(url, templateParameters, errorMessage)
-
-  def getPartialContent(url: String, templateParameters: Map[String, String] = Map.empty, errorMessage: Html = HtmlFormat.empty)(implicit ec: ExecutionContext, request: RequestHeader): Html =
-    getPartial(url, templateParameters).successfulContentOrElse(errorMessage)
+  def getPartialContent(
+    url               : String,
+    templateParameters: Map[String, String] = Map.empty,
+    errorMessage      : Html = HtmlFormat.empty
+  )(implicit
+    ec     : ExecutionContext,
+    request: RequestHeader
+  ): Future[Html] =
+    getPartial(url, templateParameters)
+      .map(_.successfulContentOrElse(errorMessage))
 }

@@ -17,6 +17,7 @@
 package uk.gov.hmrc.play.partials
 import org.mockito.{ArgumentMatchersSugar, MockitoSugar}
 import org.scalatest.BeforeAndAfterEach
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.mvc.{CookieHeaderEncoding, SessionCookieBaker}
@@ -34,7 +35,8 @@ class FormPartialSpec
      with Matchers
      with MockitoSugar
      with ArgumentMatchersSugar
-     with BeforeAndAfterEach {
+     with BeforeAndAfterEach
+     with ScalaFutures {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -74,13 +76,9 @@ class FormPartialSpec
           Future.successful(HtmlPartial.Success(title = None, content = Html("some content B")))
         )
 
-      val p1 = partialProvider.getPartial("foo").asInstanceOf[HtmlPartial.Success]
-      p1.title should be (None)
-      p1.content.body should be ("some content A")
+      partialProvider.getPartial("foo").futureValue shouldBe HtmlPartial.Success(title = None, content = Html("some content A"))
 
-      val p2 = partialProvider.getPartial("foo").asInstanceOf[HtmlPartial.Success]
-      p2.title should be (None)
-      p2.content.body should be ("some content B")
+      partialProvider.getPartial("foo").futureValue shouldBe HtmlPartial.Success(title = None, content = Html("some content B"))
 
       verify(mockHttpGet, times(2))
         .GET(eqTo(s"foo?csrfToken=${csrfValue}"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext])
@@ -94,9 +92,7 @@ class FormPartialSpec
       when(mockHttpGet.GET[HtmlPartial](any[String], any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
         .thenReturn(Future.successful(HtmlPartial.Success(title = None, content = Html("some content C"))))
 
-      val p = partialProvider.getPartial("foo?attrA=valA&attrB=valB").asInstanceOf[HtmlPartial.Success]
-      p.title should be (None)
-      p.content.body should be ("some content C")
+      partialProvider.getPartial("foo?attrA=valA&attrB=valB").futureValue shouldBe HtmlPartial.Success(title = None, content = Html("some content C"))
 
       verify(mockHttpGet)
         .GET(eqTo(s"foo?attrA=valA&attrB=valB&csrfToken=${csrfValue}"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext])
@@ -110,7 +106,7 @@ class FormPartialSpec
       when(mockHttpGet.GET[HtmlPartial](any[String], any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
         .thenReturn(Future.successful(HtmlPartial.Failure()))
 
-      partialProvider.getPartial("foo") should be (HtmlPartial.Failure())
+      partialProvider.getPartial("foo").futureValue should be (HtmlPartial.Failure())
 
       verify(mockHttpGet)
         .GET(eqTo(s"foo?csrfToken=${csrfValue}"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext])
@@ -124,7 +120,7 @@ class FormPartialSpec
       when(mockHttpGet.GET[HtmlPartial](any[String], any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
         .thenReturn(Future.successful(HtmlPartial.Failure()))
 
-      partialProvider.getPartialContent(url = "foo", errorMessage = Html("something went wrong")).body should be("something went wrong")
+      partialProvider.getPartialContent(url = "foo", errorMessage = Html("something went wrong")).futureValue.body should be("something went wrong")
 
       verify(mockHttpGet)
         .GET(eqTo(s"foo?csrfToken=${csrfValue}"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext])

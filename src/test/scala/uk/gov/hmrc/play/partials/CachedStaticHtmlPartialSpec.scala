@@ -19,6 +19,7 @@ package uk.gov.hmrc.play.partials
 import com.google.common.base.Ticker
 import org.mockito.{ArgumentMatchersSugar, MockitoSugar}
 import org.scalatest.BeforeAndAfterEach
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.test.FakeRequest
@@ -32,8 +33,9 @@ class CachedStaticHtmlPartialSpec
   extends AnyWordSpecLike
      with Matchers
      with MockitoSugar
+     with ArgumentMatchersSugar
      with BeforeAndAfterEach
-     with ArgumentMatchersSugar {
+     with ScalaFutures {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -91,14 +93,14 @@ class CachedStaticHtmlPartialSpec
           Future.successful(HtmlPartial.Success(title = None, content = Html("some content B")))
         )
 
-      htmlPartial.getPartial("foo").asInstanceOf[HtmlPartial.Success].content.body should be("some content A")
+      htmlPartial.getPartial("foo").futureValue should be(HtmlPartial.Success(title = None, content = Html("some content A")))
 
       // whilst still within the refresh time the same content should be returned from cache
-      htmlPartial.getPartial("foo").asInstanceOf[HtmlPartial.Success].content.body should be("some content A")
+      htmlPartial.getPartial("foo").futureValue should be(HtmlPartial.Success(title = None, content = Html("some content A")))
 
       // now move beyond the refresh time
       testTicker.shiftTimeInSeconds(cacheRefreshIntervalInSeconds + 1)
-      htmlPartial.getPartial("foo").asInstanceOf[HtmlPartial.Success].content.body should be("some content B")
+      htmlPartial.getPartial("foo").futureValue should be(HtmlPartial.Success(title = None, content = Html("some content B")))
       verify(mockHttpGet, times(2))
         .GET[HtmlPartial](eqTo("foo"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext])
     }
@@ -110,23 +112,23 @@ class CachedStaticHtmlPartialSpec
           Future.successful(HtmlPartial.Failure())
         )
 
-      htmlPartial.getPartial("foo").asInstanceOf[HtmlPartial.Success].content.body should be("some content C")
+      htmlPartial.getPartial("foo").futureValue should be(HtmlPartial.Success(title = None, content = Html("some content C")))
       testTicker.shiftTimeInSeconds(cacheRefreshIntervalInSeconds + 1)
-      htmlPartial.getPartial("foo").asInstanceOf[HtmlPartial.Success].content.body should be("some content C")
+      htmlPartial.getPartial("foo").futureValue should be(HtmlPartial.Success(title = None, content = Html("some content C")))
     }
 
     "return HtmlPartial.Failure when there is an exception retrieving the partial from the URL and we have no cached value yet" in {
       when(mockHttpGet.GET[HtmlPartial](eqTo("foo"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
         .thenReturn(Future.successful(HtmlPartial.Failure()))
 
-      htmlPartial.getPartial("foo") should be(HtmlPartial.Failure())
+      htmlPartial.getPartial("foo").futureValue should be(HtmlPartial.Failure())
     }
 
     "return provided Html when there is an exception retrieving the partial from the URL and we have no cached value yet" in {
       when(mockHttpGet.GET[HtmlPartial](eqTo("foo"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
         .thenReturn(Future.successful(HtmlPartial.Failure()))
 
-      htmlPartial.get(url = "foo", errorMessage = Html("something went wrong")).body should be("something went wrong")
+      htmlPartial.getPartialContent(url = "foo", errorMessage = Html("something went wrong")).futureValue.body should be("something went wrong")
     }
 
     "return error message when stale value has expired and th:ere is an exception reloading the cache" in {
@@ -136,11 +138,11 @@ class CachedStaticHtmlPartialSpec
           Future.successful(HtmlPartial.Failure())
         )
 
-      htmlPartial.getPartial("foo").asInstanceOf[HtmlPartial.Success].content.body should be("some content D")
+      htmlPartial.getPartial("foo").futureValue should be(HtmlPartial.Success(title = None, content = Html("some content D")))
 
       testTicker.shiftTimeInHours(cacheExpiryIntervalInHours + 1)
 
-      htmlPartial.get(url = "foo", errorMessage = Html("something went wrong")).body should be("something went wrong")
+      htmlPartial.getPartialContent(url = "foo", errorMessage = Html("something went wrong")).futureValue.body should be("something went wrong")
     }
 
     "invalidate cache entries when using real ticker" in {
@@ -161,14 +163,14 @@ class CachedStaticHtmlPartialSpec
           Future.successful(HtmlPartial.Success(title = None, content = Html("some content B")))
         )
 
-      htmlPartialWithRealTicker.getPartial("foo").asInstanceOf[HtmlPartial.Success].content.body should be("some content A")
+      htmlPartialWithRealTicker.getPartial("foo").futureValue should be(HtmlPartial.Success(title = None, content = Html("some content A")))
 
       // whilst still within the refresh time the same content should be returned from cache
-      htmlPartialWithRealTicker.getPartial("foo").asInstanceOf[HtmlPartial.Success].content.body should be("some content A")
+      htmlPartialWithRealTicker.getPartial("foo").futureValue should be(HtmlPartial.Success(title = None, content = Html("some content A")))
 
       // now move beyond the refresh time
       Thread.sleep(2000)
-      htmlPartialWithRealTicker.getPartial("foo").asInstanceOf[HtmlPartial.Success].content.body should be("some content B")
+      htmlPartialWithRealTicker.getPartial("foo").futureValue should be(HtmlPartial.Success(title = None, content = Html("some content B")))
     }
   }
 }
