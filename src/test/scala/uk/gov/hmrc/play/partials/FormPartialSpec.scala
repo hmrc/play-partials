@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import play.filters.csrf.CSRF
 import scala.concurrent.{ExecutionContext, Future}
 
 class FormPartialSpec extends WordSpecLike with Matchers with MockitoSugar with ArgumentMatchersSugar with BeforeAndAfterEach {
+  import scala.concurrent.ExecutionContext.Implicits.global
 
   val fakeApplication = new GuiceApplicationBuilder().configure("csrf.sign.tokens" -> false).build()
 
@@ -35,9 +36,7 @@ class FormPartialSpec extends WordSpecLike with Matchers with MockitoSugar with 
   val partialProvider = new FormPartialRetriever {
     override val httpGet: CoreGet = mockHttpGet
 
-    override val crypto = c _
-
-    private def c(value: String) = value
+    override val crypto = s => s
   }
 
   override protected def beforeEach() = {
@@ -47,15 +46,12 @@ class FormPartialSpec extends WordSpecLike with Matchers with MockitoSugar with 
   }
 
   "get" should {
-
     "retrieve HTML from the given URL" in new WithApplication(fakeApplication) {
-
       implicit val request = FakeRequest("GET", "/getform", FakeHeaders(), "").withCSRFToken
 
       val csrfValue = CSRF.getToken(request).get.value
 
-      when(mockHttpGet.GET[HtmlPartial](any[String])(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
-//      when(mockHttpGet.GET[HtmlPartial](any[String])(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
+      when(mockHttpGet.GET[HtmlPartial](any[String], any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
         .thenReturn(
           Future.successful(HtmlPartial.Success(title = None, content = Html("some content A"))),
           Future.successful(HtmlPartial.Success(title = None, content = Html("some content B")))
@@ -69,53 +65,53 @@ class FormPartialSpec extends WordSpecLike with Matchers with MockitoSugar with 
       p2.title should be (None)
       p2.content.body should be ("some content B")
 
-      verify(mockHttpGet, times(2)).GET(eqTo(s"foo?csrfToken=${csrfValue}"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext])
+      verify(mockHttpGet, times(2))
+        .GET(eqTo(s"foo?csrfToken=${csrfValue}"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext])
     }
 
     "retrieve HTML from the given URL, which includes query string" in new WithApplication(fakeApplication) {
-
       implicit val request = FakeRequest("GET", "/getform", FakeHeaders(), "").withCSRFToken
 
       val csrfValue = CSRF.getToken(request).get.value
 
-      when(mockHttpGet.GET[HtmlPartial](any[String])(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
+      when(mockHttpGet.GET[HtmlPartial](any[String], any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
         .thenReturn(Future.successful(HtmlPartial.Success(title = None, content = Html("some content C"))))
 
       val p = partialProvider.getPartial("foo?attrA=valA&attrB=valB").asInstanceOf[HtmlPartial.Success]
       p.title should be (None)
       p.content.body should be ("some content C")
 
-      verify(mockHttpGet).GET(eqTo(s"foo?attrA=valA&attrB=valB&csrfToken=${csrfValue}"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext])
+      verify(mockHttpGet)
+        .GET(eqTo(s"foo?attrA=valA&attrB=valB&csrfToken=${csrfValue}"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext])
     }
 
     "return HtmlPartial.Failure when there is an exception retrieving the partial from the URL" in new WithApplication(fakeApplication) {
-
       implicit val request = FakeRequest("GET", "/getform", FakeHeaders(), "").withCSRFToken
 
       val csrfValue = CSRF.getToken(request).get.value
 
-      when(mockHttpGet.GET[HtmlPartial](any[String])(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
+      when(mockHttpGet.GET[HtmlPartial](any[String], any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
         .thenReturn(Future.successful(HtmlPartial.Failure()))
 
       partialProvider.getPartial("foo") should be (HtmlPartial.Failure())
 
-      verify(mockHttpGet).GET(eqTo(s"foo?csrfToken=${csrfValue}"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext])
+      verify(mockHttpGet)
+        .GET(eqTo(s"foo?csrfToken=${csrfValue}"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext])
     }
 
     "return provided Html when there is an exception retrieving the partial from the URL" in new WithApplication(fakeApplication) {
-
       implicit val request = FakeRequest("GET", "/getform", FakeHeaders(), "").withCSRFToken
 
       val csrfValue = CSRF.getToken(request).get.value
 
-      when(mockHttpGet.GET[HtmlPartial](any[String])(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
+      when(mockHttpGet.GET[HtmlPartial](any[String], any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
         .thenReturn(Future.successful(HtmlPartial.Failure()))
 
       partialProvider.getPartialContent(url = "foo", errorMessage = Html("something went wrong")).body should be("something went wrong")
 
-      verify(mockHttpGet).GET(eqTo(s"foo?csrfToken=${csrfValue}"))(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext])
+      verify(mockHttpGet)
+        .GET(eqTo(s"foo?csrfToken=${csrfValue}"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext])
     }
-
   }
 
   "processTemplate" should {
@@ -169,10 +165,8 @@ class FormPartialSpec extends WordSpecLike with Matchers with MockitoSugar with 
           |<div>hello world ${csrfValue}</div>
         """.stripMargin
 
-
       partialProvider.processTemplate(Html(template), Map("param" -> "world")).body shouldBe expectedTemplate
     }
-
   }
 
   "urlWithCsrfToken" should {
@@ -194,6 +188,5 @@ class FormPartialSpec extends WordSpecLike with Matchers with MockitoSugar with 
       val url = partialProvider.urlWithCsrfToken("/contact/problem_reports?service=yta&secure=true")
       url shouldBe s"/contact/problem_reports?service=yta&secure=true&csrfToken=${csrfValue}"
     }
-
   }
 }

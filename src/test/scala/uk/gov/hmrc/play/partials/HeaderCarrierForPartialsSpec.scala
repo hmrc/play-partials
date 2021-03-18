@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ class HeaderCarrierForPartialsSpec extends WordSpecLike with Matchers {
 
       def assertHeaderCarrier(implicit hcfp: HeaderCarrierForPartials): Unit = {
         val hc = hcfp.toHeaderCarrier
-        val cookiesHeader = hc.headers.filter(_._1 == HeaderNames.COOKIE).head._2
+        val cookiesHeader = hc.headers(Seq(HeaderNames.COOKIE)).head._2
         Cookies.decodeCookieHeader(cookiesHeader) should contain (Cookie("cookieName", "cookieValue"))
       }
 

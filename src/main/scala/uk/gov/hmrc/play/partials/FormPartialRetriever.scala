@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,9 +18,8 @@ package uk.gov.hmrc.play.partials
 
 import play.api.mvc.RequestHeader
 import play.twirl.api.Html
-import uk.gov.hmrc.http.logging.LoggingDetails
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.HeaderCarrierConverter
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext
 
 import scala.concurrent.{Await, ExecutionContext}
 
@@ -31,22 +30,19 @@ trait FormPartialRetriever extends PartialRetriever with HeaderCarrierForPartial
     super.processTemplate(template, formParameters)
   }
 
-  override protected def loadPartial(url: String)(implicit request: RequestHeader): HtmlPartial = {
-    val loggingDetails: LoggingDetails = HeaderCarrierConverter.fromHeadersAndSession(request.headers, Some(request.session))
-    implicit val ec: ExecutionContext = MdcLoggingExecutionContext.fromLoggingDetails(loggingDetails)
-    Await.result(httpGet.GET[HtmlPartial](urlWithCsrfToken(url)).recover(HtmlPartial.connectionExceptionsAsHtmlPartialFailure), partialRetrievalTimeout)
-  }
+  override protected def loadPartial(url: String)(implicit ec: ExecutionContext, request: RequestHeader): HtmlPartial =
+    Await.result(
+      httpGet.GET[HtmlPartial](urlWithCsrfToken(url)).recover(HtmlPartial.connectionExceptionsAsHtmlPartialFailure),
+      partialRetrievalTimeout
+    )
 
   protected def getCsrfToken(implicit request: RequestHeader): String = {
     import play.filters.csrf.CSRF
-
-    CSRF.getToken(request).map{ _.value }.getOrElse("")
+    CSRF.getToken(request).fold("")(_.value)
   }
 
-  def urlWithCsrfToken(url: String)(implicit request: RequestHeader) =
-    if(url.contains("?"))
-      s"$url&csrfToken=$getCsrfToken"
-    else
-      s"$url?csrfToken=$getCsrfToken"
-
+  def urlWithCsrfToken(url: String)(implicit request: RequestHeader) = {
+    val sep = if (url.contains("?")) "&" else "?"
+    s"$url${sep}csrfToken=$getCsrfToken"
+  }
 }
