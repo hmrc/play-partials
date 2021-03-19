@@ -37,19 +37,23 @@ object HtmlPartial {
   }
 
   trait HtmlPartialHttpReads extends HttpReads[HtmlPartial] {
-
-    def read(method: String, url: String, response: HttpResponse) = response.status match {
-      case s if s >= 200 && s <= 299 => Success(
-        title = response.header("X-Title").map(UriEncoding.decodePathSegment(_, "UTF-8")),
-        content = Html(response.body)
-      )
-      case other =>
-        logger.warn(s"Failed to load partial from $url, received $other")
-        Failure(Some(other), response.body)
-    }
+    def read(method: String, url: String, response: HttpResponse) =
+      response.status match {
+        case s if s >= 200 && s <= 299 =>
+          Success(
+            title   = response.header("X-Title").map(UriEncoding.decodePathSegment(_, "UTF-8")),
+            content = Html(response.body)
+          )
+        case other =>
+          logger.warn(s"Failed to load partial from $url, received status $other")
+          Failure(
+            status = Some(other),
+            body   = response.body
+          )
+      }
   }
 
-  implicit val readsPartial = new HtmlPartialHttpReads {}
+  implicit val readsPartial = new HtmlPartialHttpReads { }
 
   val connectionExceptionsAsHtmlPartialFailure: PartialFunction[Throwable, HtmlPartial] = {
     case e@(_: BadGatewayException | _: GatewayTimeoutException) =>

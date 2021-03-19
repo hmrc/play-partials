@@ -16,52 +16,41 @@
 
 package uk.gov.hmrc.play.partials
 
-import java.util.concurrent.TimeUnit
-
-import com.google.common.base.Ticker
-import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
+import play.api.Logger
 import play.api.mvc.RequestHeader
 import uk.gov.hmrc.http.HeaderCarrier
+import play.api.cache.AsyncCacheApi
 
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.{Duration, DurationLong}
 
 
 // TODO provide injectable instances
-
+// Note, clients should be responsible for wrapping apis in cacheApi as required?
+// Note behaviour changes: before file would be refreshed every 60 seconds, but not expired until 1 hr.
+// the difference is now, after 60 seconds, there will be a cache miss, and client will have to wait until it is reloaded
+// - and if it failes, the old value will not be returned...
+// also if there is a failure, we now continue to request again and again, where as before, it would wait to request again?
 trait CachedStaticHtmlPartialRetriever extends PartialRetriever {
 
-  val cacheTicker =  Ticker.systemTicker()
+  private val logger = Logger(classOf[CachedStaticHtmlPartialRetriever])
 
-  def refreshAfter: Duration = 60.seconds
+  def cacheApi: AsyncCacheApi
 
-  def expireAfter: Duration = 60.minutes
+  def expireAfter: Duration = 60.seconds // TODO inject config and move default to reference.conf
 
-  def maximumEntries: Int = 1000
-
-  private[partials] lazy val cache: LoadingCache[String, HtmlPartial.Success] =
-    CacheBuilder.newBuilder()
-      .maximumSize(maximumEntries)
-      .ticker(cacheTicker)
-      .refreshAfterWrite(refreshAfter.toMillis, TimeUnit.MILLISECONDS)
-      .expireAfterWrite(expireAfter.toMillis, TimeUnit.MILLISECONDS)
-      .build(new CacheLoader[String, HtmlPartial.Success]() {
-        def load(url: String) = fetchPartial(url) match {
-          case s: HtmlPartial.Success => s
-          case f: HtmlPartial.Failure => throw new RuntimeException("Could not load partial")
-        } //TODO we could also override reload() and refresh the cache asynchronously: https://code.google.com/p/guava-libraries/wiki/CachesExplained#Refresh
-      })
-
-  override protected def loadPartial(url: String)(implicit ec: ExecutionContext, request: RequestHeader) =
-    try {
-      Future.successful(cache.get(url))
-    } catch {
-      case e: Exception => Future.successful(HtmlPartial.Failure())
+  override protected def loadPartial(url: String)(implicit ec: ExecutionContext, request: RequestHeader): Future[HtmlPartial] =
+    cacheApi.getOrElseUpdate(url, expiration = expireAfter){
+      implicit val hc = HeaderCarrier()
+      httpGet.GET[HtmlPartial](url)
+        .recover(HtmlPartial.connectionExceptionsAsHtmlPartialFailure)
+        .flatMap {
+          case s: HtmlPartial.Success => Future.successful(s)
+          case f: HtmlPartial.Failure => val msg = s"Could not load partial. Status: ${f.status}"
+                                         logger.error(msg)
+                                         Future.failed(sys.error(s"Could not load partial. Status: ${f.status}")) // this ensures the failure is not cached
+      }
+    }.recover {
+      case e => HtmlPartial.Failure()
     }
-
-  private def fetchPartial(url: String): HtmlPartial = {
-    import ExecutionContext.Implicits.global
-    implicit val hc = HeaderCarrier()
-    Await.result(httpGet.GET[HtmlPartial](url).recover(HtmlPartial.connectionExceptionsAsHtmlPartialFailure), partialRetrievalTimeout)
-  }
 }

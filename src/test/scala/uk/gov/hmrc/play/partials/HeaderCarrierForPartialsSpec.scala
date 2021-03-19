@@ -22,7 +22,6 @@ import play.api.http.HeaderNames
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.{Cookie, Cookies, CookieHeaderEncoding, SessionCookieBaker}
 import play.api.test.{FakeHeaders, FakeRequest}
-import uk.gov.hmrc.http.HeaderCarrier
 
 class HeaderCarrierForPartialsSpec extends AnyWordSpecLike with Matchers {
 
