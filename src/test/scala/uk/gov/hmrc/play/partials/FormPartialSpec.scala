@@ -23,10 +23,11 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.mvc.{CookieHeaderEncoding, SessionCookieBaker}
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.{FakeHeaders, FakeRequest, WithApplication}
-import play.twirl.api.Html
-import uk.gov.hmrc.http.{CoreGet, HeaderCarrier, HttpReads}
 import play.api.test.CSRFTokenHelper._
 import play.filters.csrf.CSRF
+import play.twirl.api.Html
+import uk.gov.hmrc.crypto.ApplicationCrypto
+import uk.gov.hmrc.http.{CoreGet, HeaderCarrier, HttpReads}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -40,7 +41,10 @@ class FormPartialSpec
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  val fakeApplication = new GuiceApplicationBuilder().configure("csrf.sign.tokens" -> false).build()
+  val fakeApplication =
+    new GuiceApplicationBuilder()
+      .configure("csrf.sign.tokens" -> false)
+      .build()
 
   val mockHttpGet = mock[CoreGet]
 
@@ -48,8 +52,8 @@ class FormPartialSpec
     override val httpGet: CoreGet =
       mockHttpGet
 
-    override val crypto: String => String =
-      s => s
+    override val applicationCrypto: ApplicationCrypto =
+      fakeApplication.injector.instanceOf[ApplicationCrypto]
 
     override val sessionCookieBaker: SessionCookieBaker =
       fakeApplication.injector.instanceOf[SessionCookieBaker]

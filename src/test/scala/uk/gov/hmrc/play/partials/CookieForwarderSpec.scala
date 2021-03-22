@@ -22,20 +22,27 @@ import play.api.http.HeaderNames
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.{Cookie, CookieHeaderEncoding, SessionCookieBaker}
 import play.api.test.{FakeHeaders, FakeRequest}
+import uk.gov.hmrc.crypto.ApplicationCrypto
 
 class CookieForwarderSpec extends AnyWordSpecLike with Matchers {
 
-  val fakeApplication = new GuiceApplicationBuilder().configure("csrf.sign.tokens" -> false).build()
+  val fakeApplication =
+    new GuiceApplicationBuilder()
+      .configure("csrf.sign.tokens" -> false)
+      .build()
 
   object Converter extends CookieForwarder {
-    override def crypto: String => String =
-      s => s.reverse
+    override val applicationCrypto: ApplicationCrypto =
+      fakeApplication.injector.instanceOf[ApplicationCrypto]
 
     override val sessionCookieBaker: SessionCookieBaker =
       fakeApplication.injector.instanceOf[SessionCookieBaker]
 
     override val cookieHeaderEncoding: CookieHeaderEncoding =
       fakeApplication.injector.instanceOf[CookieHeaderEncoding]
+
+    override private[partials] def encryptCookie(cookie: String): String =
+      cookie.reverse
   }
 
   "CookieForwarder" should {
@@ -63,7 +70,7 @@ class CookieForwarderSpec extends AnyWordSpecLike with Matchers {
       val cookiesHeader = hc.headers(Seq(HeaderNames.COOKIE)).head._2
       val cookies = Converter.cookieHeaderEncoding.decodeCookieHeader(cookiesHeader)
       cookies should contain (Cookie("cookieName", "cookieValue"))
-      cookies should contain (Cookie(encryptableCookieName, Converter.crypto("unencrypted")))
+      cookies should contain (Cookie(encryptableCookieName, Converter.encryptCookie("unencrypted")))
     }
   }
 }

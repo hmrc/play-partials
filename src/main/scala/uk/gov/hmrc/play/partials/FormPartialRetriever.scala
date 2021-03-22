@@ -17,10 +17,10 @@
 package uk.gov.hmrc.play.partials
 
 import javax.inject.{Inject, Singleton}
-import uk.gov.hmrc.crypto.{ApplicationCrypto, PlainText}
 import play.api.mvc.{CookieHeaderEncoding, RequestHeader, SessionCookieBaker}
-import uk.gov.hmrc.http.{CoreGet, HttpClient}
 import play.twirl.api.Html
+import uk.gov.hmrc.crypto.ApplicationCrypto
+import uk.gov.hmrc.http.{CoreGet, HttpClient}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -52,11 +52,8 @@ trait FormPartialRetriever extends PartialRetriever with CookieForwarder {
 class FormPartialRetrieverImpl @Inject()(
   http  : HttpClient,
   override val cookieHeaderEncoding: CookieHeaderEncoding,
-  applicationCrypto: ApplicationCrypto,
-  override val sessionCookieBaker: SessionCookieBaker
-
+  override val applicationCrypto   : ApplicationCrypto,
+  override val sessionCookieBaker  : SessionCookieBaker
 ) extends FormPartialRetriever {
   override val httpGet: CoreGet = http
-  override def crypto: String => String =
-    cookie => applicationCrypto.SessionCookieCrypto.encrypt(PlainText(cookie)).toString
 }

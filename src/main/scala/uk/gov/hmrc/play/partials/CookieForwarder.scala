@@ -18,15 +18,19 @@ package uk.gov.hmrc.play.partials
 
 import play.api.http.HeaderNames
 import play.api.mvc.{Cookie, CookieHeaderEncoding, RequestHeader, SessionCookieBaker}
+import uk.gov.hmrc.crypto.{ApplicationCrypto, PlainText}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
 
 
 trait CookieForwarder {
 
-  def crypto: String => String
+  def applicationCrypto: ApplicationCrypto
   def sessionCookieBaker: SessionCookieBaker
   def cookieHeaderEncoding: CookieHeaderEncoding
+
+  private[partials] def encryptCookie(cookie: String): String =
+    applicationCrypto.SessionCookieCrypto.encrypt(PlainText(cookie)).toString
 
   private def encryptSessionCookie(request: RequestHeader): String = {
     val cookies: Seq[Cookie] =
@@ -38,7 +42,7 @@ trait CookieForwarder {
       cookies
         .map {
           case cookie if cookie.name == sessionCookieBaker.COOKIE_NAME =>
-            cookie.copy(value = crypto(cookie.value))
+            cookie.copy(value = encryptCookie(cookie.value))
           case other => other
         }
 
