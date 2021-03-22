@@ -24,7 +24,7 @@ import play.twirl.api.Html
 
 import scala.concurrent.{ExecutionContext, Future}
 
-trait FormPartialRetriever extends PartialRetriever with HeaderCarrierForPartialsConverter {
+trait FormPartialRetriever extends PartialRetriever with CookieForwarder {
 
   override def processTemplate(template: Html, parameters: Map[String, String])(implicit request: RequestHeader): Html = {
     val formParameters = parameters + ("csrfToken" -> getCsrfToken)
@@ -32,7 +32,7 @@ trait FormPartialRetriever extends PartialRetriever with HeaderCarrierForPartial
   }
 
   override protected def loadPartial(url: String)(implicit ec: ExecutionContext, request: RequestHeader): Future[HtmlPartial] = {
-    implicit val hc = headerCarrierForPartials(request)
+    implicit val hc = cookieForwardingHeaderCarrier(request)
     httpGet.GET[HtmlPartial](urlWithCsrfToken(url)).recover(HtmlPartial.connectionExceptionsAsHtmlPartialFailure)
   }
 

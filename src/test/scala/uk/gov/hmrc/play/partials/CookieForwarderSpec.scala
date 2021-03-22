@@ -23,11 +23,11 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.{Cookie, CookieHeaderEncoding, SessionCookieBaker}
 import play.api.test.{FakeHeaders, FakeRequest}
 
-class HeaderCarrierForPartialsSpec extends AnyWordSpecLike with Matchers {
+class CookieForwarderSpec extends AnyWordSpecLike with Matchers {
 
   val fakeApplication = new GuiceApplicationBuilder().configure("csrf.sign.tokens" -> false).build()
 
-  object Converter extends HeaderCarrierForPartialsConverter {
+  object Converter extends CookieForwarder {
     override def crypto: String => String =
       s => s.reverse
 
@@ -38,7 +38,7 @@ class HeaderCarrierForPartialsSpec extends AnyWordSpecLike with Matchers {
       fakeApplication.injector.instanceOf[CookieHeaderEncoding]
   }
 
-  "HeaderCarrierForPartials" should {
+  "CookieForwarder" should {
     "encrypt request cookie" in {
      val encryptableCookieName =
        Converter.sessionCookieBaker.COOKIE_NAME
@@ -58,7 +58,7 @@ class HeaderCarrierForPartialsSpec extends AnyWordSpecLike with Matchers {
       val request =
         FakeRequest("GET", "http:/localhost/", headers, Nil)
 
-      val hc = Converter.headerCarrierForPartials(request)
+      val hc = Converter.cookieForwardingHeaderCarrier(request)
 
       val cookiesHeader = hc.headers(Seq(HeaderNames.COOKIE)).head._2
       val cookies = Converter.cookieHeaderEncoding.decodeCookieHeader(cookiesHeader)

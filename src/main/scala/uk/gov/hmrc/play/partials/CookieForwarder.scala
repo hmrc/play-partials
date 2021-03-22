@@ -22,7 +22,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
 
 
-trait HeaderCarrierForPartialsConverter {
+trait CookieForwarder {
 
   def crypto: String => String
   def sessionCookieBaker: SessionCookieBaker
@@ -45,7 +45,7 @@ trait HeaderCarrierForPartialsConverter {
     cookieHeaderEncoding.encodeCookieHeader(updatedCookies)
   }
 
-  def headerCarrierForPartials(request: RequestHeader): HeaderCarrier = {
+  def cookieForwardingHeaderCarrier(request: RequestHeader): HeaderCarrier = {
     val hc = HeaderCarrierConverter.fromRequestAndSession(request, request.session)
     val encrypedCookies = encryptSessionCookie(request)
     hc.copy(otherHeaders = hc.otherHeaders.filterNot(_._1 == HeaderNames.COOKIE) ++ Seq(HeaderNames.COOKIE -> encrypedCookies))
