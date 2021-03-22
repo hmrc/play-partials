@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.play.partials
 
+import com.google.inject.ImplementedBy
 import javax.inject.{Inject, Singleton}
 import play.api.mvc.{CookieHeaderEncoding, RequestHeader, SessionCookieBaker}
 import play.twirl.api.Html
@@ -24,6 +25,7 @@ import uk.gov.hmrc.http.{CoreGet, HttpClient}
 
 import scala.concurrent.{ExecutionContext, Future}
 
+@ImplementedBy(classOf[FormPartialRetrieverImpl])
 trait FormPartialRetriever extends PartialRetriever with CookieForwarder {
 
   override def processTemplate(template: Html, parameters: Map[String, String])(implicit request: RequestHeader): Html = {

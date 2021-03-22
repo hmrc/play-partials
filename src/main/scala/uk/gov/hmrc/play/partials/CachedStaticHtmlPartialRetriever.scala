@@ -18,6 +18,7 @@ package uk.gov.hmrc.play.partials
 
 import java.util.concurrent.TimeUnit
 
+import com.google.inject.ImplementedBy
 import com.typesafe.config.Config
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
@@ -33,6 +34,7 @@ import scala.concurrent.duration.{Duration, DurationLong}
 // Note, we're not using plays asyncCacheApi (backed by caffeine/eh-cache) since this api does not offer
 // refreshing - i.e. if a result expires, and cannot be loaded (due to error), the result will be unserveable.
 // Also pre-caffeine Play 2.8 (i.e. eh-cache & Play 2.7 caffeine) multiple requests did not wait for the same future, but launched multiple futures.
+@ImplementedBy(classOf[CachedStaticHtmlPartialRetrieverImpl])
 trait CachedStaticHtmlPartialRetriever extends PartialRetriever {
 
   private val logger = Logger(classOf[CachedStaticHtmlPartialRetriever])
