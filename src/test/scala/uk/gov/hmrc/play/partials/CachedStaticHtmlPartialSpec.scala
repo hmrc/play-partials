@@ -62,9 +62,11 @@ class CachedStaticHtmlPartialSpec
 
     override lazy val cacheTicker: Ticker = testTicker
 
-    override def refreshAfter: Duration = 20.seconds
+    override val refreshAfter: Duration = 20.seconds
 
-    override def expireAfter: Duration = 2.hours
+    override val expireAfter: Duration = 2.hours
+
+    override val maximumEntries: Int = 100
   }
 
   implicit val request = FakeRequest()
@@ -147,7 +149,11 @@ class CachedStaticHtmlPartialSpec
       val htmlPartialWithRealTicker = new CachedStaticHtmlPartialRetriever {
         override val httpGet = mockHttpGet
 
-        override def refreshAfter: Duration = 2.seconds
+        override val refreshAfter: Duration = 2.seconds
+
+        override val expireAfter: Duration = 1.hour
+
+        override val maximumEntries: Int = 100
       }
 
       when(mockHttpGet.GET[HtmlPartial](eqTo("foo"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))

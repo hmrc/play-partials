@@ -21,13 +21,10 @@ import play.twirl.api.{Html, HtmlFormat}
 import uk.gov.hmrc.http.CoreGet
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.duration.{Duration, DurationLong}
 
 trait PartialRetriever extends TemplateProcessor {
 
   def httpGet: CoreGet
-
-  def partialRetrievalTimeout: Duration = 20.seconds
 
   protected def loadPartial(
     url: String
@@ -48,7 +45,7 @@ trait PartialRetriever extends TemplateProcessor {
   def getPartialContent(
     url               : String,
     templateParameters: Map[String, String] = Map.empty,
-    errorMessage      : Html = HtmlFormat.empty
+    errorMessage      : Html                = HtmlFormat.empty
   )(implicit
     ec     : ExecutionContext,
     request: RequestHeader

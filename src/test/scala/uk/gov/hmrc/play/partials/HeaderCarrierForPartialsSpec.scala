@@ -20,7 +20,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.http.HeaderNames
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.mvc.{Cookie, Cookies, CookieHeaderEncoding, SessionCookieBaker}
+import play.api.mvc.{Cookie, CookieHeaderEncoding, SessionCookieBaker}
 import play.api.test.{FakeHeaders, FakeRequest}
 
 class HeaderCarrierForPartialsSpec extends AnyWordSpecLike with Matchers {
@@ -44,7 +44,7 @@ class HeaderCarrierForPartialsSpec extends AnyWordSpecLike with Matchers {
        Converter.sessionCookieBaker.COOKIE_NAME
 
      val cookieWithUnencryptedSession =
-       Cookies.encodeCookieHeader(Seq(
+       Converter.cookieHeaderEncoding.encodeCookieHeader(Seq(
          Cookie("cookieName", "cookieValue"),
          Cookie(encryptableCookieName, "unencrypted")
        ))
@@ -61,7 +61,7 @@ class HeaderCarrierForPartialsSpec extends AnyWordSpecLike with Matchers {
       val hc = Converter.headerCarrierForPartials(request)
 
       val cookiesHeader = hc.headers(Seq(HeaderNames.COOKIE)).head._2
-      val cookies = Cookies.decodeCookieHeader(cookiesHeader)
+      val cookies = Converter.cookieHeaderEncoding.decodeCookieHeader(cookiesHeader)
       cookies should contain (Cookie("cookieName", "cookieValue"))
       cookies should contain (Cookie(encryptableCookieName, Converter.crypto("unencrypted")))
     }

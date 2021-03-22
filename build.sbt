@@ -4,6 +4,7 @@ import sbt._
 val compileDependencies = PlayCrossCompilation.dependencies(
   shared = Seq(
     "com.github.ben-manes.caffeine" % "caffeine"  % "2.8.4",
+    "uk.gov.hmrc"        %% "crypto"              % "6.0.0"
   ),
   play26 = Seq(
     "com.typesafe.play"  %% "play"                % "2.6.25",

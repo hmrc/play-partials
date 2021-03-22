@@ -16,12 +16,13 @@
 
 package uk.gov.hmrc.play.partials
 
-import play.api.mvc.RequestHeader
+import javax.inject.{Inject, Singleton}
+import uk.gov.hmrc.crypto.{ApplicationCrypto, PlainText}
+import play.api.mvc.{CookieHeaderEncoding, RequestHeader, SessionCookieBaker}
+import uk.gov.hmrc.http.{CoreGet, HttpClient}
 import play.twirl.api.Html
 
 import scala.concurrent.{ExecutionContext, Future}
-
-// TODO provide injectable instances
 
 trait FormPartialRetriever extends PartialRetriever with HeaderCarrierForPartialsConverter {
 
@@ -40,8 +41,22 @@ trait FormPartialRetriever extends PartialRetriever with HeaderCarrierForPartial
     CSRF.getToken(request).fold("")(_.value)
   }
 
-  def urlWithCsrfToken(url: String)(implicit request: RequestHeader) = {
+  def urlWithCsrfToken(url: String)(implicit request: RequestHeader): String = {
     val sep = if (url.contains("?")) "&" else "?"
     s"$url${sep}csrfToken=$getCsrfToken"
   }
+}
+
+
+@Singleton
+class FormPartialRetrieverImpl @Inject()(
+  http  : HttpClient,
+  override val cookieHeaderEncoding: CookieHeaderEncoding,
+  applicationCrypto: ApplicationCrypto,
+  override val sessionCookieBaker: SessionCookieBaker
+
+) extends FormPartialRetriever {
+  override val httpGet: CoreGet = http
+  override def crypto: String => String =
+    cookie => applicationCrypto.SessionCookieCrypto.encrypt(PlainText(cookie)).toString
 }

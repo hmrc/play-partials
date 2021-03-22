@@ -18,9 +18,11 @@ package uk.gov.hmrc.play.partials
 
 import java.util.concurrent.TimeUnit
 
+import com.typesafe.config.Config
+import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.mvc.RequestHeader
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{CoreGet, HeaderCarrier, HttpClient}
 import com.github.benmanes.caffeine.cache.{AsyncLoadingCache, Caffeine, Ticker}
 
 import scala.compat.java8.FutureConverters.{fromExecutor, toJava, toScala}
@@ -28,21 +30,20 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.{Duration, DurationLong}
 
 
-// TODO provide injectable instances
 // Note, we're not using plays asyncCacheApi (backed by caffeine/eh-cache) since this api does not offer
 // refreshing - i.e. if a result expires, and cannot be loaded (due to error), the result will be unserveable.
+// Also pre-caffeine Play 2.8 (i.e. eh-cache & Play 2.7 caffeine) multiple requests did not wait for the same future, but launched multiple futures.
 trait CachedStaticHtmlPartialRetriever extends PartialRetriever {
 
   private val logger = Logger(classOf[CachedStaticHtmlPartialRetriever])
 
   protected lazy val cacheTicker = Ticker.systemTicker()
 
-  // TODO inject config and move default to reference.conf
-  def refreshAfter: Duration = 60.seconds
+  def refreshAfter: Duration
 
-  def expireAfter: Duration = 60.minutes
+  def expireAfter: Duration
 
-  def maximumEntries: Int = 1000
+  def maximumEntries: Int
 
   private[partials] lazy val cache: AsyncLoadingCache[String, HtmlPartial.Success] =
     Caffeine.newBuilder()
@@ -71,4 +72,22 @@ trait CachedStaticHtmlPartialRetriever extends PartialRetriever {
         case s: HtmlPartial.Success => Future.successful(s)
         case f: HtmlPartial.Failure => Future.failed(sys.error(s"Failed to fetch partial. Status: ${f.status}")) // this ensures the failure is not cached
     }
+}
+
+
+@Singleton
+class CachedStaticHtmlPartialRetrieverImpl @Inject()(
+  http  : HttpClient,
+  config: Config
+) extends CachedStaticHtmlPartialRetriever {
+  override val httpGet: CoreGet = http
+
+  override val refreshAfter: Duration =
+    config.getDuration("play-partial.cache.refreshAfter").toMillis.millis
+
+  override val expireAfter: Duration =
+    config.getDuration("play-partial.cache.expireAfter").toMillis.millis
+
+  override val maximumEntries: Int =
+    config.getInt("play-partial.cache.maxEntries")
 }

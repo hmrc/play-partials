@@ -26,18 +26,20 @@ sealed trait HtmlPartial {
   def successfulContentOrElse(fallbackContent: => Html): Html
   def successfulContentOrEmpty: Html = successfulContentOrElse(Html(""))
 }
+
 object HtmlPartial {
   private val logger = Logger(getClass)
 
   case class Success(title: Option[String], content: Html) extends HtmlPartial {
-    def successfulContentOrElse(fallbackContent: => Html) = content
+    override def successfulContentOrElse(fallbackContent: => Html) = content
   }
+
   case class Failure(status: Option[Int] = None, body: String = "") extends HtmlPartial {
-    def successfulContentOrElse(fallbackContent: => Html) = fallbackContent
+    override def successfulContentOrElse(fallbackContent: => Html) = fallbackContent
   }
 
   trait HtmlPartialHttpReads extends HttpReads[HtmlPartial] {
-    def read(method: String, url: String, response: HttpResponse) =
+    override def read(method: String, url: String, response: HttpResponse) =
       response.status match {
         case s if s >= 200 && s <= 299 =>
           Success(
