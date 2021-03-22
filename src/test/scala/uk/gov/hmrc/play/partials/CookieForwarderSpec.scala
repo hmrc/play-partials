@@ -23,6 +23,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.{Cookie, CookieHeaderEncoding, SessionCookieBaker}
 import play.api.test.{FakeHeaders, FakeRequest}
 import uk.gov.hmrc.crypto.ApplicationCrypto
+import uk.gov.hmrc.http.HeaderCarrier
 
 class CookieForwarderSpec extends AnyWordSpecLike with Matchers {
 
@@ -67,7 +68,9 @@ class CookieForwarderSpec extends AnyWordSpecLike with Matchers {
 
       val hc = Converter.cookieForwardingHeaderCarrier(request)
 
-      val cookiesHeader = hc.headers(Seq(HeaderNames.COOKIE)).head._2
+      val sentHeaders = hc.headersForUrl(HeaderCarrier.Config.fromConfig(com.typesafe.config.ConfigFactory.load()))("http://localhost/ping/ping")
+      sentHeaders.filter(_._1 == HeaderNames.COOKIE).size shouldBe 1
+      val cookiesHeader = sentHeaders.filter(_._1 == HeaderNames.COOKIE).head._2
       val cookies = Converter.cookieHeaderEncoding.decodeCookieHeader(cookiesHeader)
       cookies should contain (Cookie("cookieName", "cookieValue"))
       cookies should contain (Cookie(encryptableCookieName, Converter.encryptCookie("unencrypted")))

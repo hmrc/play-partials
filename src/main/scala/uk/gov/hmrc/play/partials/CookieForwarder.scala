@@ -54,8 +54,8 @@ trait CookieForwarder {
 
   def cookieForwardingHeaderCarrier(request: RequestHeader): HeaderCarrier = {
     val hc = HeaderCarrierConverter.fromRequestAndSession(request, request.session)
-    val encrypedCookies = encryptSessionCookie(request)
-    hc.copy(otherHeaders = hc.otherHeaders.filterNot(_._1 == HeaderNames.COOKIE) ++ Seq(HeaderNames.COOKIE -> encrypedCookies))
+    val encryptedCookies = encryptSessionCookie(request)
+    hc.copy(extraHeaders = Seq(HeaderNames.COOKIE -> encryptedCookies))
   }
 }
 
