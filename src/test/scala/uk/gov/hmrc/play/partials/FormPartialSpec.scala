@@ -15,18 +15,17 @@
  */
 
 package uk.gov.hmrc.play.partials
+
 import org.mockito.{ArgumentMatchersSugar, MockitoSugar}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
-import play.api.mvc.{CookieHeaderEncoding, SessionCookieBaker}
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.{FakeHeaders, FakeRequest, WithApplication}
 import play.api.test.CSRFTokenHelper._
 import play.filters.csrf.CSRF
 import play.twirl.api.Html
-import uk.gov.hmrc.crypto.ApplicationCrypto
 import uk.gov.hmrc.http.{CoreGet, HeaderCarrier, HttpReads}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -52,14 +51,8 @@ class FormPartialSpec
     override val httpGet: CoreGet =
       mockHttpGet
 
-    override val applicationCrypto: ApplicationCrypto =
-      fakeApplication.injector.instanceOf[ApplicationCrypto]
-
-    override val sessionCookieBaker: SessionCookieBaker =
-      fakeApplication.injector.instanceOf[SessionCookieBaker]
-
-    override val cookieHeaderEncoding: CookieHeaderEncoding =
-      fakeApplication.injector.instanceOf[CookieHeaderEncoding]
+    override val cookieForwarder: CookieForwarder =
+      fakeApplication.injector.instanceOf[CookieForwarder]
   }
 
   override protected def beforeEach() = {

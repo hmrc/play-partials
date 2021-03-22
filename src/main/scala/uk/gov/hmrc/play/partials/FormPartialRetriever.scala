@@ -18,15 +18,16 @@ package uk.gov.hmrc.play.partials
 
 import com.google.inject.ImplementedBy
 import javax.inject.{Inject, Singleton}
-import play.api.mvc.{CookieHeaderEncoding, RequestHeader, SessionCookieBaker}
+import play.api.mvc.RequestHeader
 import play.twirl.api.Html
-import uk.gov.hmrc.crypto.ApplicationCrypto
 import uk.gov.hmrc.http.{CoreGet, HttpClient}
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[FormPartialRetrieverImpl])
-trait FormPartialRetriever extends PartialRetriever with CookieForwarder {
+trait FormPartialRetriever extends PartialRetriever {
+
+  def cookieForwarder: CookieForwarder
 
   override def processTemplate(template: Html, parameters: Map[String, String])(implicit request: RequestHeader): Html = {
     val formParameters = parameters + ("csrfToken" -> getCsrfToken)
@@ -34,7 +35,7 @@ trait FormPartialRetriever extends PartialRetriever with CookieForwarder {
   }
 
   override protected def loadPartial(url: String)(implicit ec: ExecutionContext, request: RequestHeader): Future[HtmlPartial] = {
-    implicit val hc = cookieForwardingHeaderCarrier(request)
+    implicit val hc = cookieForwarder.cookieForwardingHeaderCarrier(request)
     httpGet.GET[HtmlPartial](urlWithCsrfToken(url)).recover(HtmlPartial.connectionExceptionsAsHtmlPartialFailure)
   }
 
@@ -53,9 +54,7 @@ trait FormPartialRetriever extends PartialRetriever with CookieForwarder {
 @Singleton
 class FormPartialRetrieverImpl @Inject()(
   http  : HttpClient,
-  override val cookieHeaderEncoding: CookieHeaderEncoding,
-  override val applicationCrypto   : ApplicationCrypto,
-  override val sessionCookieBaker  : SessionCookieBaker
+  override val cookieForwarder: CookieForwarder
 ) extends FormPartialRetriever {
   override val httpGet: CoreGet = http
 }

@@ -89,6 +89,22 @@ class MyView @Inject()(formPartialRetriever: FormPartialRetriever) {
 }
 ```
 
+## Forwarding Cookies
+
+In order to include cookies in the partial request, the HeaderCarrier must be created from the request with `CookieForwarder.cookieForwardingHeaderCarrier` rather than with `HeaderCarrierConverter`.
+
+### example
+
+```scala
+class MyView @Inject()(cookieForwarder: CookieForwarder) {
+  def getPartial(implicit request: RequestHeader) = {
+    implicit val hc = cookieForwarder.cookieForwardingHeaderCarrier(request)
+    http.GET[HtmlPartial](url("/some/url"))
+  }
+}
+```
+
+
 ## Migrations
 
 ### Version 8.0.0

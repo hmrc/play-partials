@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.play.partials
 
+import com.google.inject.ImplementedBy
+import javax.inject.{Inject, Singleton}
 import play.api.http.HeaderNames
 import play.api.mvc.{Cookie, CookieHeaderEncoding, RequestHeader, SessionCookieBaker}
 import uk.gov.hmrc.crypto.{ApplicationCrypto, PlainText}
@@ -23,6 +25,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
 
 
+@ImplementedBy(classOf[CookieForwarderImpl])
 trait CookieForwarder {
 
   def applicationCrypto: ApplicationCrypto
@@ -55,3 +58,10 @@ trait CookieForwarder {
     hc.copy(otherHeaders = hc.otherHeaders.filterNot(_._1 == HeaderNames.COOKIE) ++ Seq(HeaderNames.COOKIE -> encrypedCookies))
   }
 }
+
+@Singleton
+class CookieForwarderImpl @Inject()(
+  override val cookieHeaderEncoding: CookieHeaderEncoding,
+  override val applicationCrypto   : ApplicationCrypto,
+  override val sessionCookieBaker  : SessionCookieBaker
+) extends CookieForwarder
