@@ -51,8 +51,8 @@ class FormPartialSpec
     override val httpGet: CoreGet =
       mockHttpGet
 
-    override val cookieForwarder: CookieForwarder =
-      fakeApplication.injector.instanceOf[CookieForwarder]
+    override val headerCarrierForPartialsConverter: HeaderCarrierForPartialsConverter =
+      fakeApplication.injector.instanceOf[HeaderCarrierForPartialsConverter]
   }
 
   override protected def beforeEach() = {

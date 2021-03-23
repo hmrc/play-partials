@@ -91,14 +91,14 @@ class MyView @Inject()(formPartialRetriever: FormPartialRetriever) {
 
 ## Forwarding Cookies
 
-In order to include cookies in the partial request, the HeaderCarrier must be created from the request with `CookieForwarder.cookieForwardingHeaderCarrier` rather than with `HeaderCarrierConverter`.
+In order to include cookies in the partial request, the HeaderCarrier must be created from the request with `HeaderCarrierForPartialsConverter.fromRequestWithEncryptedCookie` rather than with `HeaderCarrierConverter` from http-verbs.
 
 ### example
 
 ```scala
-class MyView @Inject()(cookieForwarder: CookieForwarder) {
-  def getPartial(implicit request: RequestHeader) = {
-    implicit val hc = cookieForwarder.cookieForwardingHeaderCarrier(request)
+class MyView @Inject()(headerCarrierForPartialsConverter: HeaderCarrierForPartialsConverter) {
+  def getPartial(request: RequestHeader) = {
+    implicit val hc = headerCarrierForPartialsConverter.fromRequestWithEncryptedCookie(request)
     http.GET[HtmlPartial](url("/some/url"))
   }
 }
@@ -111,12 +111,14 @@ class MyView @Inject()(cookieForwarder: CookieForwarder) {
 
 Built for Play 2.6, 2.7 and 2.8.
 
+- Injectable instances for `CachedStaticHtmlPartialRetriever`, `FormPartialRetriever` and `HeaderCarrierForPartialsConverter` are provided. They should be used in preference to implementing the traits.
+- `HeaderCarrierForPartialsConverter` requires a `ApplicationCrypto` (amongst other dependencies) instead of an ambiguous `def crypto: (String) => String` function. Using the injectable instance of `HeaderCarrierForPartialsConverter` should suffice for most use-cases, and ensures that encrypton is properly applied.
+- `PartialRetriever.loadPartial` now returns an asynchronous `Future[HtmlPartial]`
+
+Deprecated removals:
 - The deprecated type `CachedStaticHtmlPartial` was removed - use `CachedStaticHtmlPartialRetriever` instead.
 - The deprecated type `FormPartial` was removed - use `FormPartialRetriever` instead.
-- Trait `HeaderCarrierForPartialsConverter` and class `HeaderCarrierForPartials` were removed - use `CookieForwarder.cookieForwardingHeaderCarrier` instead.
-- `PartialRetriever.loadPartial` now returns an asynchronous `Future[HtmlPartial]`
 - The deprecated method `PartialRetriever.get` was removed, use `PartialRetriever.getPartial` or `PartialRetriever.getPartialContent` instead.
-- Injectable instances for `CachedStaticHtmlPartialRetriever` and `FormPartialRetriever` are provided.
 
 
 ## License ##

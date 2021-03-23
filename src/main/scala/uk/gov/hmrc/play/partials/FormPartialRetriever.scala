@@ -27,7 +27,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[FormPartialRetrieverImpl])
 trait FormPartialRetriever extends PartialRetriever {
 
-  def cookieForwarder: CookieForwarder
+  def headerCarrierForPartialsConverter: HeaderCarrierForPartialsConverter
 
   override def processTemplate(template: Html, parameters: Map[String, String])(implicit request: RequestHeader): Html = {
     val formParameters = parameters + ("csrfToken" -> getCsrfToken)
@@ -35,8 +35,9 @@ trait FormPartialRetriever extends PartialRetriever {
   }
 
   override protected def loadPartial(url: String)(implicit ec: ExecutionContext, request: RequestHeader): Future[HtmlPartial] = {
-    implicit val hc = cookieForwarder.cookieForwardingHeaderCarrier(request)
-    httpGet.GET[HtmlPartial](urlWithCsrfToken(url)).recover(HtmlPartial.connectionExceptionsAsHtmlPartialFailure)
+    implicit val hc = headerCarrierForPartialsConverter.fromRequestWithEncryptedCookie(request)
+    httpGet.GET[HtmlPartial](urlWithCsrfToken(url))
+      .recover(HtmlPartial.connectionExceptionsAsHtmlPartialFailure)
   }
 
   protected def getCsrfToken(implicit request: RequestHeader): String = {
@@ -54,7 +55,7 @@ trait FormPartialRetriever extends PartialRetriever {
 @Singleton
 class FormPartialRetrieverImpl @Inject()(
   http  : HttpClient,
-  override val cookieForwarder: CookieForwarder
+  override val headerCarrierForPartialsConverter: HeaderCarrierForPartialsConverter
 ) extends FormPartialRetriever {
   override val httpGet: CoreGet = http
 }

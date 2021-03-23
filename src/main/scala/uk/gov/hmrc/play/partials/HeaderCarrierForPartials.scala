@@ -25,8 +25,16 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
 
 
-@ImplementedBy(classOf[CookieForwarderImpl])
-trait CookieForwarder {
+case class HeaderCarrierForPartials(
+  hc              : HeaderCarrier,
+  encryptedCookies: String
+) {
+  def toHeaderCarrier =
+    hc.copy(extraHeaders = Seq(HeaderNames.COOKIE -> encryptedCookies))
+}
+
+@ImplementedBy(classOf[HeaderCarrierForPartialsConverterImpl])
+trait HeaderCarrierForPartialsConverter {
 
   def applicationCrypto: ApplicationCrypto
   def sessionCookieBaker: SessionCookieBaker
@@ -52,16 +60,22 @@ trait CookieForwarder {
     cookieHeaderEncoding.encodeCookieHeader(updatedCookies)
   }
 
-  def cookieForwardingHeaderCarrier(request: RequestHeader): HeaderCarrier = {
-    val hc = HeaderCarrierConverter.fromRequestAndSession(request, request.session)
-    val encryptedCookies = encryptSessionCookie(request)
-    hc.copy(extraHeaders = Seq(HeaderNames.COOKIE -> encryptedCookies))
-  }
+  def fromRequestWithEncryptedCookie(request: RequestHeader): HeaderCarrier =
+    headerCarrierEncryptingSessionCookieFromRequest(request).toHeaderCarrier
+
+  implicit def headerCarrierEncryptingSessionCookieFromRequest(implicit request: RequestHeader): HeaderCarrierForPartials =
+    HeaderCarrierForPartials(
+      hc               = HeaderCarrierConverter.fromRequestAndSession(request, request.session),
+      encryptedCookies = encryptSessionCookie(request)
+    )
+
+  implicit def headerCarrierForPartialsToHeaderCarrier(implicit hcfp: HeaderCarrierForPartials): HeaderCarrier =
+    hcfp.toHeaderCarrier
 }
 
 @Singleton
-class CookieForwarderImpl @Inject()(
+class HeaderCarrierForPartialsConverterImpl @Inject()(
   override val cookieHeaderEncoding: CookieHeaderEncoding,
   override val applicationCrypto   : ApplicationCrypto,
   override val sessionCookieBaker  : SessionCookieBaker
-) extends CookieForwarder
+) extends HeaderCarrierForPartialsConverter

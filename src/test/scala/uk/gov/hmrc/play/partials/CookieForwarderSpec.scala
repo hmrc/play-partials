@@ -22,17 +22,18 @@ import play.api.http.HeaderNames
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.{Cookie, CookieHeaderEncoding, SessionCookieBaker}
 import play.api.test.{FakeHeaders, FakeRequest}
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.crypto.ApplicationCrypto
 import uk.gov.hmrc.http.HeaderCarrier
 
-class CookieForwarderSpec extends AnyWordSpecLike with Matchers {
+class HeaderCarrierForPartialsConverterSpec extends AnyWordSpecLike with Matchers {
 
   val fakeApplication =
     new GuiceApplicationBuilder()
       .configure("csrf.sign.tokens" -> false)
       .build()
 
-  object Converter extends CookieForwarder {
+  object Converter extends HeaderCarrierForPartialsConverter {
     override val applicationCrypto: ApplicationCrypto =
       fakeApplication.injector.instanceOf[ApplicationCrypto]
 
@@ -46,7 +47,7 @@ class CookieForwarderSpec extends AnyWordSpecLike with Matchers {
       cookie.reverse
   }
 
-  "CookieForwarder" should {
+  "HeaderCarrierForPartialsConverter" should {
     "encrypt request cookie" in {
      val encryptableCookieName =
        Converter.sessionCookieBaker.COOKIE_NAME
@@ -66,7 +67,7 @@ class CookieForwarderSpec extends AnyWordSpecLike with Matchers {
       val request =
         FakeRequest("GET", "http:/localhost/", headers, Nil)
 
-      val hc = Converter.cookieForwardingHeaderCarrier(request)
+      val hc = Converter.fromRequestWithEncryptedCookie(request)
 
       val sentHeaders = hc.headersForUrl(HeaderCarrier.Config.fromConfig(com.typesafe.config.ConfigFactory.load()))("http://localhost/ping/ping")
       sentHeaders.filter(_._1 == HeaderNames.COOKIE).size shouldBe 1
