@@ -69,7 +69,7 @@ class HeaderCarrierForPartialsConverterSpec extends AnyWordSpecLike with Matcher
 
       val hc = Converter.fromRequestWithEncryptedCookie(request)
 
-      val sentHeaders = hc.headersForUrl(HeaderCarrier.Config.fromConfig(com.typesafe.config.ConfigFactory.load()))("http://localhost/ping/ping")
+      val sentHeaders = hc.headersForUrl(HeaderCarrier.Config.fromConfig(com.typesafe.config.ConfigFactory.load()))(request.uri)
       sentHeaders.filter(_._1 == HeaderNames.COOKIE).size shouldBe 1
       val cookiesHeader = sentHeaders.filter(_._1 == HeaderNames.COOKIE).head._2
       val cookies = Converter.cookieHeaderEncoding.decodeCookieHeader(cookiesHeader)

@@ -20,11 +20,16 @@ import play.api.mvc.RequestHeader
 import play.twirl.api.{Html, HtmlFormat}
 import uk.gov.hmrc.http.CoreGet
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.duration.{Duration, DurationLong}
 
 trait PartialRetriever extends TemplateProcessor {
 
   def httpGet: CoreGet
+
+  @deprecated("This will be removed when blocking getPartialContent is removed.", since = "8.0.0")
+  def partialRetrievalTimeout: Duration =
+    20.seconds
 
   protected def loadPartial(
     url: String
@@ -42,7 +47,18 @@ trait PartialRetriever extends TemplateProcessor {
   ): Future[HtmlPartial] =
     loadPartial(url)
 
+  @deprecated("use non-blocking getPartialContentAsync", since = "8.0.0")
   def getPartialContent(
+    url               : String,
+    templateParameters: Map[String, String] = Map.empty,
+    errorMessage      : Html                = HtmlFormat.empty
+  )(implicit
+    ec     : ExecutionContext,
+    request: RequestHeader
+  ): Html =
+    Await.result(getPartialContentAsync(url, templateParameters, errorMessage), partialRetrievalTimeout)
+
+  def getPartialContentAsync(
     url               : String,
     templateParameters: Map[String, String] = Map.empty,
     errorMessage      : Html                = HtmlFormat.empty

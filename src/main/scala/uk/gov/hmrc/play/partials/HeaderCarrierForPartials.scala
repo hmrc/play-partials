@@ -26,11 +26,14 @@ import uk.gov.hmrc.play.http.HeaderCarrierConverter
 
 
 case class HeaderCarrierForPartials(
-  hc              : HeaderCarrier,
-  encryptedCookies: String
+  hc            : HeaderCarrier,
+  encodedCookies: String
 ) {
   def toHeaderCarrier =
-    hc.copy(extraHeaders = Seq(HeaderNames.COOKIE -> encryptedCookies))
+    // COOKIE is present in `otherHeaders` - it's important to copy the encrypted version into
+    // `extraHeaders` to be forwarded on, rather than replacing the one in `otherHeaders` since otherHeaders
+    // are only sent on if in `bootstrap.http.headersAllowlist`, which COOKIE is not.
+    hc.copy(extraHeaders = Seq(HeaderNames.COOKIE -> encodedCookies))
 }
 
 @ImplementedBy(classOf[HeaderCarrierForPartialsConverterImpl])
@@ -65,8 +68,8 @@ trait HeaderCarrierForPartialsConverter {
 
   implicit def headerCarrierEncryptingSessionCookieFromRequest(implicit request: RequestHeader): HeaderCarrierForPartials =
     HeaderCarrierForPartials(
-      hc               = HeaderCarrierConverter.fromRequestAndSession(request, request.session),
-      encryptedCookies = encryptSessionCookie(request)
+      hc             = HeaderCarrierConverter.fromRequestAndSession(request, request.session),
+      encodedCookies = encryptSessionCookie(request)
     )
 
   implicit def headerCarrierForPartialsToHeaderCarrier(implicit hcfp: HeaderCarrierForPartials): HeaderCarrier =

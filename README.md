@@ -5,7 +5,7 @@ play-partials
 
 A library used to retrieve HTML partials to use when composing HTML Play frontend applications.
 
-In supports caching the partials.
+It supports caching the partials.
 
 ## Adding to your service
 
@@ -99,7 +99,7 @@ In order to include cookies in the partial request, the HeaderCarrier must be cr
 class MyView @Inject()(headerCarrierForPartialsConverter: HeaderCarrierForPartialsConverter) {
   def getPartial(request: RequestHeader) = {
     implicit val hc = headerCarrierForPartialsConverter.fromRequestWithEncryptedCookie(request)
-    http.GET[HtmlPartial](url("/some/url"))
+    http.GET[HtmlPartial](url("http://my.partial"))
   }
 }
 ```
@@ -112,8 +112,9 @@ class MyView @Inject()(headerCarrierForPartialsConverter: HeaderCarrierForPartia
 Built for Play 2.6, 2.7 and 2.8.
 
 - Injectable instances for `CachedStaticHtmlPartialRetriever`, `FormPartialRetriever` and `HeaderCarrierForPartialsConverter` are provided. They should be used in preference to implementing the traits.
-- `HeaderCarrierForPartialsConverter` requires a `ApplicationCrypto` (amongst other dependencies) instead of an ambiguous `def crypto: (String) => String` function. Using the injectable instance of `HeaderCarrierForPartialsConverter` should suffice for most use-cases, and ensures that encrypton is properly applied.
-- `PartialRetriever.loadPartial` now returns an asynchronous `Future[HtmlPartial]`
+- `HeaderCarrierForPartialsConverter` requires a `ApplicationCrypto` (amongst other dependencies) instead of an ambiguous `def crypto: (String) => String` function. Using the injectable instance of `HeaderCarrierForPartialsConverter` should suffice for most use-cases, and ensures that encryption is properly applied.
+- `PartialRetriever.loadPartial` and `PartialRetriever.getPartial` now return an asynchronous `Future[HtmlPartial]`
+- `PartialRetriever.getPartialContent` is deprecated, in preference to `PartialRetriever.getPartialContentAsync`, which returns `Future[Html]`
 
 Deprecated removals:
 - The deprecated type `CachedStaticHtmlPartial` was removed - use `CachedStaticHtmlPartialRetriever` instead.

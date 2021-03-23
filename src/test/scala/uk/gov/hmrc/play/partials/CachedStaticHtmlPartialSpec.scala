@@ -126,7 +126,7 @@ class CachedStaticHtmlPartialSpec
       when(mockHttpGet.GET[HtmlPartial](eqTo("foo"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
         .thenReturn(Future.successful(HtmlPartial.Failure()))
 
-      htmlPartial.getPartialContent(url = "foo", errorMessage = Html("something went wrong")).futureValue.body should be("something went wrong")
+      htmlPartial.getPartialContentAsync(url = "foo", errorMessage = Html("something went wrong")).futureValue.body should be("something went wrong")
     }
 
     "return error message when stale value has expired and th:ere is an exception reloading the cache" in {
@@ -140,7 +140,7 @@ class CachedStaticHtmlPartialSpec
 
       testTicker.shiftTime(htmlPartial.expireAfter + 1.hour)
 
-      htmlPartial.getPartialContent(url = "foo", errorMessage = Html("something went wrong")).futureValue.body should be("something went wrong")
+      htmlPartial.getPartialContentAsync(url = "foo", errorMessage = Html("something went wrong")).futureValue.body should be("something went wrong")
     }
 
     "invalidate cache entries when using real ticker" in {
