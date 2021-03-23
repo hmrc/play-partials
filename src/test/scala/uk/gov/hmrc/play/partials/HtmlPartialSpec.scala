@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +16,16 @@
 
 package uk.gov.hmrc.play.partials
 
-import org.scalatest.{Matchers, WordSpecLike}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 import play.utils.UriEncoding
 import uk.gov.hmrc.http.{BadGatewayException, GatewayTimeoutException, HttpResponse}
 
-class HtmlPartialSpec extends WordSpecLike with Matchers {
+class HtmlPartialSpec extends AnyWordSpecLike with Matchers {
 
   "Reading an HtmlPartial from an HTTP Response" should {
-
     "return Success when the response status is 200" in new TestCase {
-      val response = HttpResponse(responseStatus = 200, responseString = Some(content))
+      val response = HttpResponse(status = 200, body = content)
 
       val partial = HtmlPartial.readsPartial.read("someMethod", "someUrl", response)
       partial should be (an [HtmlPartial.Success])
@@ -34,7 +34,7 @@ class HtmlPartialSpec extends WordSpecLike with Matchers {
     }
 
     "return Success with a title if present in the X-title header" in new TestCase {
-      val response = HttpResponse(responseStatus = 200, responseHeaders = Map("X-Title" -> Seq(encoded_title)), responseString = Some(content))
+      val response = HttpResponse(status = 200, body = content, headers = Map("X-Title" -> Seq(encoded_title)))
 
       val partial = HtmlPartial.readsPartial.read("someMethod", "someUrl", response)
       partial should be (an [HtmlPartial.Success])
@@ -43,7 +43,7 @@ class HtmlPartialSpec extends WordSpecLike with Matchers {
     }
 
     "return Success with empty content if the response body is empty" in new TestCase {
-      val response = HttpResponse(responseStatus = 200)
+      val response = HttpResponse(status = 200, body = "")
 
       val partial = HtmlPartial.readsPartial.read("someMethod", "someUrl", response)
       partial should be (an [HtmlPartial.Success])
@@ -51,7 +51,7 @@ class HtmlPartialSpec extends WordSpecLike with Matchers {
     }
 
     "return Success with no content if the response status is 204" in new TestCase {
-      val response = HttpResponse(responseStatus = 204)
+      val response = HttpResponse(status = 204, body = "")
 
       val partial = HtmlPartial.readsPartial.read("someMethod", "someUrl", response)
       partial should be (an [HtmlPartial.Success])
@@ -61,7 +61,7 @@ class HtmlPartialSpec extends WordSpecLike with Matchers {
     "return Failure with the response body if the response status is between 400 and 599" in new TestCase {
       val responseBody = """{"error": "it's all gone horribley wrong"}"""
       for (status <- 400 to 599) {
-        val response = HttpResponse(responseStatus = status, responseString = Some(responseBody))
+        val response = HttpResponse(status = status, body = responseBody)
 
         val partial = HtmlPartial.readsPartial.read("someMethod", "someUrl", response)
         partial should be (an [HtmlPartial.Failure])
@@ -71,7 +71,7 @@ class HtmlPartialSpec extends WordSpecLike with Matchers {
 
     "return Failure with no body if the response status is between 400 and 599 but no response body is provided" in new TestCase {
       for (status <- 400 to 599) {
-        val response = HttpResponse(responseStatus = status, responseString = Some(""))
+        val response = HttpResponse(status = status, body = "")
 
         val partial = HtmlPartial.readsPartial.read("someMethod", "someUrl", response)
         partial should be (an [HtmlPartial.Failure])
@@ -84,9 +84,11 @@ class HtmlPartialSpec extends WordSpecLike with Matchers {
     "Turn a BadGatewayException into a Failure" in {
       HtmlPartial.connectionExceptionsAsHtmlPartialFailure(new BadGatewayException("sdf")) should be (HtmlPartial.Failure(Some(502)))
     }
+
     "Turn a GatewayTimeoutException into a Failure" in {
       HtmlPartial.connectionExceptionsAsHtmlPartialFailure(new GatewayTimeoutException("sdf")) should be (HtmlPartial.Failure(Some(504)))
     }
+
     "Ignore other types of exception" in {
       a [MatchError] should be thrownBy HtmlPartial.connectionExceptionsAsHtmlPartialFailure(new RuntimeException("sdf"))
     }

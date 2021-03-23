@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,48 +18,78 @@ package uk.gov.hmrc.play.partials
 
 import java.util.concurrent.TimeUnit
 
-import com.google.common.base.Ticker
-import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
+import com.google.inject.ImplementedBy
+import com.typesafe.config.Config
+import javax.inject.{Inject, Singleton}
+import play.api.Logger
 import play.api.mvc.RequestHeader
-import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+import uk.gov.hmrc.http.{CoreGet, HeaderCarrier, HttpClient}
+import com.github.benmanes.caffeine.cache.{AsyncLoadingCache, Caffeine, Ticker}
 
-import scala.concurrent._
-import scala.concurrent.duration._
+import scala.compat.java8.FutureConverters.{fromExecutor, toJava, toScala}
+import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.{Duration, DurationLong}
 
 
+// Note, we're not using plays asyncCacheApi (backed by caffeine/eh-cache) since this api does not offer
+// refreshing - i.e. if a result expires, and cannot be loaded (due to error), the result will be unserveable.
+// Also pre-caffeine Play 2.8 (i.e. eh-cache & Play 2.7 caffeine) multiple requests did not wait for the same future, but launched multiple futures.
+@ImplementedBy(classOf[CachedStaticHtmlPartialRetrieverImpl])
 trait CachedStaticHtmlPartialRetriever extends PartialRetriever {
 
-  val cacheTicker =  Ticker.systemTicker()
+  private val logger = Logger(classOf[CachedStaticHtmlPartialRetriever])
 
-  def refreshAfter: Duration = 60.seconds
+  protected lazy val cacheTicker = Ticker.systemTicker()
 
-  def expireAfter: Duration = 60.minutes
+  def refreshAfter: Duration
 
-  def maximumEntries: Int = 1000
+  def expireAfter: Duration
 
-  private[partials] lazy val cache: LoadingCache[String, HtmlPartial.Success] =
-    CacheBuilder.newBuilder()
+  def maximumEntries: Int
+
+  private[partials] lazy val cache: AsyncLoadingCache[String, HtmlPartial.Success] =
+    Caffeine.newBuilder()
       .maximumSize(maximumEntries)
       .ticker(cacheTicker)
       .refreshAfterWrite(refreshAfter.toMillis, TimeUnit.MILLISECONDS)
       .expireAfterWrite(expireAfter.toMillis, TimeUnit.MILLISECONDS)
-      .build(new CacheLoader[String, HtmlPartial.Success]() {
-        def load(url: String) = fetchPartial(url) match {
-          case s: HtmlPartial.Success => s
-          case f: HtmlPartial.Failure    => throw new RuntimeException("Could not load partial")
-        } //TODO we could also override reload() and refresh the cache asynchronously: https://code.google.com/p/guava-libraries/wiki/CachesExplained#Refresh
-      })
+      .buildAsync { (url, executor) =>
+        implicit val ec = fromExecutor(executor)
+        implicit val hc = HeaderCarrier()
+        toJava(fetchPartial(url)).toCompletableFuture
+      }
 
-  override protected def loadPartial(url: String)(implicit request: RequestHeader) =
-    try {
-      cache.get(url)
-    } catch {
-      case e: Exception => HtmlPartial.Failure()
+  override protected def loadPartial(url: String)(implicit ec: ExecutionContext, request: RequestHeader): Future[HtmlPartial] =
+    toScala(cache.get(url))
+      .recoverWith {
+        case e: Exception =>
+          logger.error(s"Could not load partial", e)
+          Future.successful(HtmlPartial.Failure())
+      }
+
+  private def fetchPartial(url: String)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[HtmlPartial.Success] =
+    httpGet.GET[HtmlPartial](url)
+      .recover(HtmlPartial.connectionExceptionsAsHtmlPartialFailure)
+      .flatMap {
+        case s: HtmlPartial.Success => Future.successful(s)
+        case f: HtmlPartial.Failure => Future.failed(sys.error(s"Failed to fetch partial. Status: ${f.status}")) // this ensures the failure is not cached
     }
+}
 
-  private def fetchPartial(url: String): HtmlPartial = {
-    implicit val hc = HeaderCarrier()
-    Await.result(httpGet.GET[HtmlPartial](url).recover(HtmlPartial.connectionExceptionsAsHtmlPartialFailure), partialRetrievalTimeout)
-  }
+
+@Singleton
+class CachedStaticHtmlPartialRetrieverImpl @Inject()(
+  http  : HttpClient,
+  config: Config
+) extends CachedStaticHtmlPartialRetriever {
+  override val httpGet: CoreGet = http
+
+  override val refreshAfter: Duration =
+    config.getDuration("play-partial.cache.refreshAfter").toMillis.millis
+
+  override val expireAfter: Duration =
+    config.getDuration("play-partial.cache.expireAfter").toMillis.millis
+
+  override val maximumEntries: Int =
+    config.getInt("play-partial.cache.maxEntries")
 }

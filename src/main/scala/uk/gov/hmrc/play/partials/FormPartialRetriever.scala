@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,37 +16,46 @@
 
 package uk.gov.hmrc.play.partials
 
+import com.google.inject.ImplementedBy
+import javax.inject.{Inject, Singleton}
 import play.api.mvc.RequestHeader
 import play.twirl.api.Html
-import uk.gov.hmrc.http.logging.LoggingDetails
-import uk.gov.hmrc.play.HeaderCarrierConverter
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext
+import uk.gov.hmrc.http.{CoreGet, HttpClient}
 
-import scala.concurrent.{Await, ExecutionContext}
+import scala.concurrent.{ExecutionContext, Future}
 
-trait FormPartialRetriever extends PartialRetriever with HeaderCarrierForPartialsConverter {
+@ImplementedBy(classOf[FormPartialRetrieverImpl])
+trait FormPartialRetriever extends PartialRetriever {
+
+  def headerCarrierForPartialsConverter: HeaderCarrierForPartialsConverter
 
   override def processTemplate(template: Html, parameters: Map[String, String])(implicit request: RequestHeader): Html = {
     val formParameters = parameters + ("csrfToken" -> getCsrfToken)
     super.processTemplate(template, formParameters)
   }
 
-  override protected def loadPartial(url: String)(implicit request: RequestHeader): HtmlPartial = {
-    val loggingDetails: LoggingDetails = HeaderCarrierConverter.fromHeadersAndSession(request.headers, Some(request.session))
-    implicit val ec: ExecutionContext = MdcLoggingExecutionContext.fromLoggingDetails(loggingDetails)
-    Await.result(httpGet.GET[HtmlPartial](urlWithCsrfToken(url)).recover(HtmlPartial.connectionExceptionsAsHtmlPartialFailure), partialRetrievalTimeout)
+  override protected def loadPartial(url: String)(implicit ec: ExecutionContext, request: RequestHeader): Future[HtmlPartial] = {
+    implicit val hc = headerCarrierForPartialsConverter.fromRequestWithEncryptedCookie(request)
+    httpGet.GET[HtmlPartial](urlWithCsrfToken(url))
+      .recover(HtmlPartial.connectionExceptionsAsHtmlPartialFailure)
   }
 
   protected def getCsrfToken(implicit request: RequestHeader): String = {
     import play.filters.csrf.CSRF
-
-    CSRF.getToken(request).map{ _.value }.getOrElse("")
+    CSRF.getToken(request).fold("")(_.value)
   }
 
-  def urlWithCsrfToken(url: String)(implicit request: RequestHeader) =
-    if(url.contains("?"))
-      s"$url&csrfToken=$getCsrfToken"
-    else
-      s"$url?csrfToken=$getCsrfToken"
+  def urlWithCsrfToken(url: String)(implicit request: RequestHeader): String = {
+    val sep = if (url.contains("?")) "&" else "?"
+    s"$url${sep}csrfToken=$getCsrfToken"
+  }
+}
 
+
+@Singleton
+class FormPartialRetrieverImpl @Inject()(
+  http  : HttpClient,
+  override val headerCarrierForPartialsConverter: HeaderCarrierForPartialsConverter
+) extends FormPartialRetriever {
+  override val httpGet: CoreGet = http
 }

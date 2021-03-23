@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,31 +26,40 @@ sealed trait HtmlPartial {
   def successfulContentOrElse(fallbackContent: => Html): Html
   def successfulContentOrEmpty: Html = successfulContentOrElse(Html(""))
 }
+
 object HtmlPartial {
+  private val logger = Logger(getClass)
+
   case class Success(title: Option[String], content: Html) extends HtmlPartial {
-    def successfulContentOrElse(fallbackContent: => Html) = content
+    override def successfulContentOrElse(fallbackContent: => Html) = content
   }
+
   case class Failure(status: Option[Int] = None, body: String = "") extends HtmlPartial {
-    def successfulContentOrElse(fallbackContent: => Html) = fallbackContent
+    override def successfulContentOrElse(fallbackContent: => Html) = fallbackContent
   }
 
   trait HtmlPartialHttpReads extends HttpReads[HtmlPartial] {
-    def read(method: String, url: String, response: HttpResponse) = response.status match {
-      case s if s >= 200 && s <= 299 => Success(
-        title = response.header("X-Title").map(UriEncoding.decodePathSegment(_, "UTF-8")),
-        content = Html(response.body)
-      )
-      case other =>
-        Logger.warn(s"Failed to load partial from $url, received $other")
-        Failure(Some(other), response.body)
-    }
+    override def read(method: String, url: String, response: HttpResponse) =
+      response.status match {
+        case s if s >= 200 && s <= 299 =>
+          Success(
+            title   = response.header("X-Title").map(UriEncoding.decodePathSegment(_, "UTF-8")),
+            content = Html(response.body)
+          )
+        case other =>
+          logger.warn(s"Failed to load partial from $url, received status $other")
+          Failure(
+            status = Some(other),
+            body   = response.body
+          )
+      }
   }
 
   implicit val readsPartial = new HtmlPartialHttpReads {}
 
   val connectionExceptionsAsHtmlPartialFailure: PartialFunction[Throwable, HtmlPartial] = {
     case e@(_: BadGatewayException | _: GatewayTimeoutException) =>
-      Logger.warn(s"Failed to load partial", e)
+      logger.warn(s"Failed to load partial", e)
       HtmlPartial.Failure(Some(e.asInstanceOf[HttpException].responseCode))
   }
 }

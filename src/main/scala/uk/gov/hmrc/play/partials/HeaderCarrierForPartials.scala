@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,36 +16,69 @@
 
 package uk.gov.hmrc.play.partials
 
+import com.google.inject.ImplementedBy
+import javax.inject.{Inject, Singleton}
 import play.api.http.HeaderNames
-import play.api.mvc.{Cookies, RequestHeader, Session}
+import play.api.mvc.{Cookie, CookieHeaderEncoding, RequestHeader, SessionCookieBaker}
+import uk.gov.hmrc.crypto.{ApplicationCrypto, PlainText}
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.HeaderCarrierConverter
+import uk.gov.hmrc.play.http.HeaderCarrierConverter
 
 
-case class HeaderCarrierForPartials(hc: HeaderCarrier, encodedCookies: String) {
-  def toHeaderCarrier = hc.copy(extraHeaders = Seq(HeaderNames.COOKIE -> encodedCookies))
+case class HeaderCarrierForPartials(
+  hc            : HeaderCarrier,
+  encodedCookies: String
+) {
+  def toHeaderCarrier =
+    // COOKIE is present in `otherHeaders` - it's important to copy the encrypted version into
+    // `extraHeaders` to be forwarded on, rather than replacing the one in `otherHeaders` since otherHeaders
+    // are only sent on if in `bootstrap.http.headersAllowlist`, which COOKIE is not.
+    hc.copy(extraHeaders = Seq(HeaderNames.COOKIE -> encodedCookies))
 }
 
+@ImplementedBy(classOf[HeaderCarrierForPartialsConverterImpl])
 trait HeaderCarrierForPartialsConverter {
 
-  def crypto: (String) => String
+  def applicationCrypto: ApplicationCrypto
+  def sessionCookieBaker: SessionCookieBaker
+  def cookieHeaderEncoding: CookieHeaderEncoding
 
-  private def encryptSessionCookie(rh: RequestHeader): String = {
-    val updatedCookies = rh.headers.getAll(HeaderNames.COOKIE).flatMap(Cookies.decodeCookieHeader).flatMap {
-      case cookie if cookie.name == Session.COOKIE_NAME =>
-        Some(cookie.copy(value = crypto(cookie.value)))
-      case other => Some(other)
-    }
+  private[partials] def encryptCookie(cookie: String): String =
+    applicationCrypto.SessionCookieCrypto.encrypt(PlainText(cookie)).toString
 
-    Cookies.encodeCookieHeader(updatedCookies)
+  private def encryptSessionCookie(request: RequestHeader): String = {
+    val cookies: Seq[Cookie] =
+      request
+        .headers.getAll(HeaderNames.COOKIE)
+        .flatMap(cookieHeaderEncoding.decodeCookieHeader)
+
+    val updatedCookies =
+      cookies
+        .map {
+          case cookie if cookie.name == sessionCookieBaker.COOKIE_NAME =>
+            cookie.copy(value = encryptCookie(cookie.value))
+          case other => other
+        }
+
+    cookieHeaderEncoding.encodeCookieHeader(updatedCookies)
   }
 
-  implicit def headerCarrierEncryptingSessionCookieFromRequest(implicit r: RequestHeader) = {
-    HeaderCarrierForPartials(HeaderCarrierConverter.fromHeadersAndSession(r.headers, Some(r.session)), encryptSessionCookie(r))
-  }
+  def fromRequestWithEncryptedCookie(request: RequestHeader): HeaderCarrier =
+    headerCarrierEncryptingSessionCookieFromRequest(request).toHeaderCarrier
 
-  implicit def headerCarrierForPartialsToHeaderCarrier(implicit hcwc: HeaderCarrierForPartials): HeaderCarrier = {
-    hcwc.toHeaderCarrier
-  }
+  implicit def headerCarrierEncryptingSessionCookieFromRequest(implicit request: RequestHeader): HeaderCarrierForPartials =
+    HeaderCarrierForPartials(
+      hc             = HeaderCarrierConverter.fromRequestAndSession(request, request.session),
+      encodedCookies = encryptSessionCookie(request)
+    )
 
+  implicit def headerCarrierForPartialsToHeaderCarrier(implicit hcfp: HeaderCarrierForPartials): HeaderCarrier =
+    hcfp.toHeaderCarrier
 }
+
+@Singleton
+class HeaderCarrierForPartialsConverterImpl @Inject()(
+  override val cookieHeaderEncoding: CookieHeaderEncoding,
+  override val applicationCrypto   : ApplicationCrypto,
+  override val sessionCookieBaker  : SessionCookieBaker
+) extends HeaderCarrierForPartialsConverter

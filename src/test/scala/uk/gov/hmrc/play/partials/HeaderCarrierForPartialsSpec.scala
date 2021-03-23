@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,39 +16,65 @@
 
 package uk.gov.hmrc.play.partials
 
-import org.scalatest.{Matchers, WordSpecLike}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.http.HeaderNames
-import play.api.mvc.{Cookie, Cookies, Session}
+import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.mvc.{Cookie, CookieHeaderEncoding, SessionCookieBaker}
 import play.api.test.{FakeHeaders, FakeRequest}
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.crypto.ApplicationCrypto
+import uk.gov.hmrc.http.HeaderCarrier
 
-class HeaderCarrierForPartialsSpec extends WordSpecLike with Matchers {
+class HeaderCarrierForPartialsConverterSpec extends AnyWordSpecLike with Matchers {
+
+  val fakeApplication =
+    new GuiceApplicationBuilder()
+      .configure("csrf.sign.tokens" -> false)
+      .build()
 
   object Converter extends HeaderCarrierForPartialsConverter {
-    def encrypt(value: String) = value
+    override val applicationCrypto: ApplicationCrypto =
+      fakeApplication.injector.instanceOf[ApplicationCrypto]
 
-    override def crypto: (String) => String = encrypt
+    override val sessionCookieBaker: SessionCookieBaker =
+      fakeApplication.injector.instanceOf[SessionCookieBaker]
+
+    override val cookieHeaderEncoding: CookieHeaderEncoding =
+      fakeApplication.injector.instanceOf[CookieHeaderEncoding]
+
+    override private[partials] def encryptCookie(cookie: String): String =
+      cookie.reverse
   }
 
-  "HeaderCarrierForPartials" should {
+  "HeaderCarrierForPartialsConverter" should {
     "encrypt request cookie" in {
+     val encryptableCookieName =
+       Converter.sessionCookieBaker.COOKIE_NAME
 
-      import Converter._
+     val cookieWithUnencryptedSession =
+       Converter.cookieHeaderEncoding.encodeCookieHeader(Seq(
+         Cookie("cookieName", "cookieValue"),
+         Cookie(encryptableCookieName, "unencrypted")
+       ))
 
-      def assertHeaderCarrier(implicit hcfp: HeaderCarrierForPartials): Unit = {
-        val hc = hcfp.toHeaderCarrier
-        val cookiesHeader = hc.headers.filter(_._1 == HeaderNames.COOKIE).head._2
-        Cookies.decodeCookieHeader(cookiesHeader) should contain (Cookie("cookieName", "cookieValue"))
-      }
+      val headers =
+        new FakeHeaders(Seq(
+          ("headerName", "headerValue"),
+          (HeaderNames.COOKIE, cookieWithUnencryptedSession)
+        ))
 
-     val cookieWithUnencryptedSession = Cookies.encodeCookieHeader(Seq(Cookie("cookieName", "cookieValue"), Cookie(Session.COOKIE_NAME, "unencrypted")))
+      val request =
+        FakeRequest("GET", "http:/localhost/", headers, Nil)
 
-      val headers = new FakeHeaders(Seq(
-        ("headerName", "headerValue"),
-        (HeaderNames.COOKIE, cookieWithUnencryptedSession)
-      ))
-      implicit val request = FakeRequest("GET", "http:/localhost/", headers, Nil)
+      val hc = Converter.fromRequestWithEncryptedCookie(request)
 
-      assertHeaderCarrier
+      val sentHeaders = hc.headersForUrl(HeaderCarrier.Config.fromConfig(com.typesafe.config.ConfigFactory.load()))(request.uri)
+      sentHeaders.filter(_._1 == HeaderNames.COOKIE).size shouldBe 1
+      val cookiesHeader = sentHeaders.filter(_._1 == HeaderNames.COOKIE).head._2
+      val cookies = Converter.cookieHeaderEncoding.decodeCookieHeader(cookiesHeader)
+      cookies should contain (Cookie("cookieName", "cookieValue"))
+      cookies should contain (Cookie(encryptableCookieName, Converter.encryptCookie("unencrypted")))
     }
   }
 }

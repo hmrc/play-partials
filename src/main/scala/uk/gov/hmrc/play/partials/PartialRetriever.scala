@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,24 +20,52 @@ import play.api.mvc.RequestHeader
 import play.twirl.api.{Html, HtmlFormat}
 import uk.gov.hmrc.http.CoreGet
 
-import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.duration.{Duration, DurationLong}
 
 trait PartialRetriever extends TemplateProcessor {
 
   def httpGet: CoreGet
 
-  def partialRetrievalTimeout: Duration = 20.seconds
+  @deprecated("This will be removed when blocking getPartialContent is removed.", since = "8.0.0")
+  def partialRetrievalTimeout: Duration =
+    20.seconds
 
-  protected def loadPartial(url: String)(implicit request: RequestHeader): HtmlPartial
+  protected def loadPartial(
+    url: String
+  )(implicit
+    ec     : ExecutionContext,
+    request: RequestHeader
+  ): Future[HtmlPartial]
 
-  def getPartial(url: String, templateParameters: Map[String, String] = Map.empty)(implicit request: RequestHeader): HtmlPartial = loadPartial(url)
+  def getPartial(
+    url: String,
+    templateParameters: Map[String, String] = Map.empty
+  )(implicit
+    ec     : ExecutionContext,
+    request: RequestHeader
+  ): Future[HtmlPartial] =
+    loadPartial(url)
 
-  @deprecated(message = "Use getPartial or getPartialContent instead", since = "16/10/15")
-  def get(url: String, templateParameters: Map[String, String] = Map.empty, errorMessage: Html = HtmlFormat.empty)(implicit request: RequestHeader): Html =
-    getPartialContent(url, templateParameters, errorMessage)
+  @deprecated("use non-blocking getPartialContentAsync", since = "8.0.0")
+  def getPartialContent(
+    url               : String,
+    templateParameters: Map[String, String] = Map.empty,
+    errorMessage      : Html                = HtmlFormat.empty
+  )(implicit
+    ec     : ExecutionContext,
+    request: RequestHeader
+  ): Html =
+    Await.result(getPartialContentAsync(url, templateParameters, errorMessage), partialRetrievalTimeout)
 
-
-  def getPartialContent(url: String, templateParameters: Map[String, String] = Map.empty, errorMessage: Html = HtmlFormat.empty)(implicit request: RequestHeader): Html = {
-    getPartial(url, templateParameters).successfulContentOrElse(errorMessage)
-  }
+  def getPartialContentAsync(
+    url               : String,
+    templateParameters: Map[String, String] = Map.empty,
+    errorMessage      : Html                = HtmlFormat.empty
+  )(implicit
+    ec     : ExecutionContext,
+    request: RequestHeader
+  ): Future[Html] =
+    getPartial(url, templateParameters)
+      .map(_.successfulContentOrElse(errorMessage))
 }
