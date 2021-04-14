@@ -10,19 +10,19 @@ val compileDependencies = PlayCrossCompilation.dependencies(
     "com.typesafe.play"  %% "play"                % "2.6.25",
     "com.typesafe.play"  %% "filters-helpers"     % "2.6.25",
     "com.typesafe.play"  %% "play-guice"          % "2.6.25",
-    "uk.gov.hmrc"        %% "http-verbs-play-26"  % "13.2.0"
+    "uk.gov.hmrc"        %% "http-verbs-play-26"  % "13.3.0"
   ),
   play27 = Seq(
     "com.typesafe.play"  %% "play"                % "2.7.9",
     "com.typesafe.play"  %% "filters-helpers"     % "2.7.9",
     "com.typesafe.play"  %% "play-guice"          % "2.7.9",
-    "uk.gov.hmrc"        %% "http-verbs-play-27"  % "13.2.0"
+    "uk.gov.hmrc"        %% "http-verbs-play-27"  % "13.3.0"
   ),
   play28 = Seq(
     "com.typesafe.play"  %% "play"                % "2.8.7",
     "com.typesafe.play"  %% "filters-helpers"     % "2.8.7",
     "com.typesafe.play"  %% "play-guice"          % "2.8.7",
-    "uk.gov.hmrc"        %% "http-verbs-play-27"  % "13.2.0"
+    "uk.gov.hmrc"        %% "http-verbs-play-27"  % "13.3.0"
   )
 )
 
