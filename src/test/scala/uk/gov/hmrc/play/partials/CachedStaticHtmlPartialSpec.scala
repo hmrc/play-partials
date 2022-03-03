@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -95,11 +95,14 @@ class CachedStaticHtmlPartialSpec
       testTicker.shiftTime(htmlPartial.refreshAfter + 1.second)
       // first call will trigger the refresh (and return cached value)
       htmlPartial.getPartial("foo").futureValue should be(HtmlPartial.Success(title = None, content = Html("some content A")))
+      Thread.sleep(200) // give the cache time to update
       // after that, the cache will have been updated
       htmlPartial.getPartial("foo").futureValue should be(HtmlPartial.Success(title = None, content = Html("some content B")))
+
       verify(mockHttpGet, times(2))
         .GET[HtmlPartial](eqTo("foo"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext])
     }
+
 
     "use stale value when there is an exception retrieving the partial from the URL" in {
       when(mockHttpGet.GET[HtmlPartial](eqTo("foo"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
@@ -112,6 +115,7 @@ class CachedStaticHtmlPartialSpec
 
       testTicker.shiftTime(htmlPartial.refreshAfter + 1.second)
       htmlPartial.getPartial("foo").futureValue should be(HtmlPartial.Success(title = None, content = Html("some content C")))
+      Thread.sleep(200) // give the cache time to update
       htmlPartial.getPartial("foo").futureValue should be(HtmlPartial.Success(title = None, content = Html("some content C")))
     }
 
@@ -168,9 +172,10 @@ class CachedStaticHtmlPartialSpec
       htmlPartialWithRealTicker.getPartial("foo").futureValue should be(HtmlPartial.Success(title = None, content = Html("some content A")))
 
       // now move beyond the refresh time
-      Thread.sleep(htmlPartialWithRealTicker.refreshAfter.toMillis)
+      Thread.sleep(htmlPartialWithRealTicker.refreshAfter.toMillis + 1)
       // first call will trigger the refresh (and return cached value)
       htmlPartialWithRealTicker.getPartial("foo").futureValue should be(HtmlPartial.Success(title = None, content = Html("some content A")))
+      Thread.sleep(200) // give the cache time to update
       // after that, the cache will have been updated
       htmlPartialWithRealTicker.getPartial("foo").futureValue should be(HtmlPartial.Success(title = None, content = Html("some content B")))
     }
