@@ -79,10 +79,10 @@ trait CachedStaticHtmlPartialRetriever extends PartialRetriever {
 
 @Singleton
 class CachedStaticHtmlPartialRetrieverImpl @Inject()(
-  http  : HttpClient,
-  config: Config
+  httpClient : HttpClient,
+  config     : Config
 ) extends CachedStaticHtmlPartialRetriever {
-  override val httpGet: CoreGet = http
+  override val httpGet: CoreGet = httpClient
 
   override val refreshAfter: Duration =
     config.getDuration("play-partial.cache.refreshAfter").toMillis.millis

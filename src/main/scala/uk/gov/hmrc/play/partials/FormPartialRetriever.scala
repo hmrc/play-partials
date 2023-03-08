@@ -54,8 +54,8 @@ trait FormPartialRetriever extends PartialRetriever {
 
 @Singleton
 class FormPartialRetrieverImpl @Inject()(
-  http  : HttpClient,
+  httpClient: HttpClient,
   override val headerCarrierForPartialsConverter: HeaderCarrierForPartialsConverter
 ) extends FormPartialRetriever {
-  override val httpGet: CoreGet = http
+  override val httpGet: CoreGet = httpClient
 }

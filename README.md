@@ -32,25 +32,23 @@ should be used on the page.
 #### Examples
 
 ```scala
-import HtmlPartial._
-
 object Connector {
   def somePartial(): Future[HtmlPartial] =
-    http.GET[HtmlPartial](url("/some/url")) recover connectionExceptionsAsHtmlPartialFailure
+    httpClient.GET[HtmlPartial](url"/some/url").recover(HtmlPartial.connectionExceptionsAsHtmlPartialFailure)
 }
 
 // Elsewhere in your service:
-Connector.partial.map(p =>
-  Ok(views.html.my_view(partial = p successfulContentOrElse Html("Sorry, there's been a problem retrieving ...")))
+Connector.somePartial().map(p =>
+  Ok(views.html.my_view(partial = p.successfulContentOrElse(Html("Sorry, there's been a problem retrieving ..."))))
 )
 
 // or, if you just want to blank out a missing partial:
-Connector.partial.map(p =>
-  Ok(views.html.my_view(partial = p successfulContentOrEmpty))
+Connector.somePartial().map(p =>
+  Ok(views.html.my_view(partial = p.successfulContentOrEmpty))
 )
 
 // or, if you want to have finer-grained control:
-Connector.partial.map {
+Connector.somePartial().map {
   case HtmlPartial.Success(Some(title), content) =>
     Ok(views.html.my_view(message = content, title = title))
   case HtmlPartial.Success(None, content)        =>
@@ -99,13 +97,19 @@ In order to include cookies in the partial request, the HeaderCarrier must be cr
 class MyView @Inject()(headerCarrierForPartialsConverter: HeaderCarrierForPartialsConverter) {
   def getPartial(request: RequestHeader) = {
     implicit val hc = headerCarrierForPartialsConverter.fromRequestWithEncryptedCookie(request)
-    http.GET[HtmlPartial](url("http://my.partial"))
+    httpClient.GET[HtmlPartial](url("http://my.partial"))
   }
 }
 ```
 
 
 ## Migrations
+
+### Vesion 8.3.0
+
+Drops support for Play 2.6 and 2.7.
+
+Built for Scala 2.12 and 2.13.
 
 ### Version 8.0.0
 
