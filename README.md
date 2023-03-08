@@ -5,7 +5,7 @@ play-partials
 
 A library used to retrieve HTML partials to use when composing HTML Play frontend applications.
 
-It supports caching the partials.
+It supports caching the partials and substituting placeholders.
 
 ## Adding to your service
 
@@ -15,6 +15,80 @@ Include the following dependency in your SBT build
 resolvers += Resolver.bintrayRepo("hmrc", "releases")
 
 libraryDependencies += "uk.gov.hmrc" %% "play-partials" % "x.x.x"
+```
+
+## PartialRetriever
+
+This is the simplest way to use the library. It contains error handling and placeholder substitutions.
+
+There are two implementations provided: [CachedStaticHtmlPartialRetriever](#using-cached-static-partials) and [FormPartialRetriever](#using-html-form-partials).
+
+First implement `PartialRetriever` and override `loadPartial`:
+
+```scala
+object MyRetriever extends PartialRetriever {
+  override def loadPartial(url: String): Future[HtmlPartial] =
+    httpClient.GET[HtmlPartial](url"/some/url").recover(HtmlPartial.connectionExceptionsAsHtmlPartialFailure)
+}
+```
+
+Then you can request the `Html` with `getPartialContentAsync`. You can provide parameter subsitutions which replaces any placeholder with the form `{{parameterKey}}`.
+
+```scala
+// Returns a Future[Html] - you can pass the Html on to the view
+MyRetriever.getPartialContentAsync("http://my.partial")
+
+// Returns a Future[Html] - you can pass the Html on to the view
+// You can provide template parameters and HTML to be returned in the case of error
+MyRetriever.getPartialContentAsync(
+  url                = "http://my.partial",
+  templateParameters = Map("NONCE_ATTR" -> CSPNonce.attr),
+  errorMessage       = Html("Could not load partial")
+  )
+```
+
+If you want to do your own error handling, you can call `getPartial` which returns the [HtmlPartial](#the-htmlpartial-type)
+
+## Using cached static partials
+
+If you need to use a static cached partial, use `CachedStaticHtmlPartialRetriever`. It will retrieve the partial from the given URL and cache it (the cache key is the partial URL) for the defined period of time. You can also pass through a map of parameters used to replace placeholders in the retrieved partial.
+
+You can configure the following cache parameters in your `application.conf`:
+- `play-partial.cache.refreshAfter`
+- `play-partial.cache.expireAfter`
+- `play-partial.cache.maxEntries`
+
+### example
+
+An instance is already provided for injection. It is used in the same way as `PartialRetriever` above. e.g.
+
+```scala
+class MyController @Inject()(cachedStaticHtmlPartialRetriever: CachedStaticHtmlPartialRetriever) {
+  // Returns a Future[Html] - you can pass the Html on to the view
+  cachedStaticHtmlPartialProvider.getPartialContentAsync("http://my.partial")
+
+  // Returns a Future[Html] - you can pass the Html on to the view
+  // You can provide template parameters and HTML to be returned in the case of error
+  cachedStaticHtmlPartialProvider.getPartialContentAsync(
+    url                = "http://my.partial",
+    templateParameters = Map("NONCE_ATTR", CSPNonce.attr),
+    errorMessage       = Html("Could not load partial")
+  )
+}
+```
+
+## Using HTML Form partials
+
+A special case of the static partials are HTML forms. By using `FormPartialRetriever` a csrfToken will be added in the request and any `{{csrfToken}}` placeholder will be replaced with the Play CSRF token value in the response.
+
+Note, these are not cached.
+
+### example
+
+```scala
+class MyView @Inject()(formPartialRetriever: FormPartialRetriever) {
+  formPartialRetriever.getPartialContentAsync("http://my.partial")
+}
 ```
 
 ## The `HtmlPartial` type
@@ -58,44 +132,6 @@ Connector.somePartial().map {
 }
 ```
 
-## Using cached static partials
-
-If you need to use a static cached partial, use `CachedStaticHtmlPartialRetriever`. It will retrieve the partial from the given URL and cache it (the cache key is the partial URL) for the defined period of time. You can also pass through a map of parameters used to replace placeholders in the retrieved partial. Placeholders have the form of `{{parameterKey}}`.
-
-You can configure the following cache parameters in your `application.conf`:
-- `play-partial.cache.refreshAfter`
-- `play-partial.cache.expireAfter`
-- `play-partial.cache.maxEntries`
-
-### example
-
-```scala
-class MyController @Inject()(cachedStaticHtmlPartialRetriever: CachedStaticHtmlPartialRetriever) {
-  // Returns a Future[Html] which can be used in the view
-  cachedStaticHtmlPartialProvider.getPartialContentAsync("http://my.partial")
-
-  // Returns a Future[Html] which can be used in the view
-  // Here uses templateParameters to replace any placeholders in the template - here specifically replaces any `{{NONCE_ATTR}}` placeholder with the current Nonce
-  cachedStaticHtmlPartialProvider.getPartialContentAsync("http://my.partial", templateParameters = Map("NONCE_ATTR", CSPNonce.attr))
-
-  // Alternatively, you can request `Future[HtmlPartial]` if you want to manage success and failure yourself
-  htmlPartial.getPartial("http://my.partial")
-}
-```
-
-## Using HTML Form partials
-
-A special case of the static partials are HTML forms. By using `FormPartialRetriever` a csrfToken will be added in the request and any `{{csrfToken}}` placeholder will be replaced with the Play CSRF token value in the response.
-
-Note, these are not cached.
-
-### example
-
-```scala
-class MyView @Inject()(formPartialRetriever: FormPartialRetriever) {
-  formPartialRetriever.getPartialContentAsync("http://my.partial")
-}
-```
 
 ## Forwarding Cookies
 
