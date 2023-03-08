@@ -45,7 +45,7 @@ trait FormPartialRetriever extends PartialRetriever {
     CSRF.getToken(request).fold("")(_.value)
   }
 
-  def urlWithCsrfToken(url: String)(implicit request: RequestHeader): String = {
+  protected[partials] def urlWithCsrfToken(url: String)(implicit request: RequestHeader): String = {
     val sep = if (url.contains("?")) "&" else "?"
     s"$url${sep}csrfToken=$getCsrfToken"
   }

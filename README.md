@@ -70,20 +70,30 @@ You can configure the following cache parameters in your `application.conf`:
 ### example
 
 ```scala
-class MyView @Inject()(cachedStaticHtmlPartialRetriever: CachedStaticHtmlPartialRetriever) {
-  cachedStaticHtmlPartialProvider.loadPartial("http://my.partial")
+class MyController @Inject()(cachedStaticHtmlPartialRetriever: CachedStaticHtmlPartialRetriever) {
+  // Returns a Future[Html] which can be used in the view
+  cachedStaticHtmlPartialProvider.getPartialContentAsync("http://my.partial")
+
+  // Returns a Future[Html] which can be used in the view
+  // Here uses templateParameters to replace any placeholders in the template - here specifically replaces any `{{NONCE_ATTR}}` placeholder with the current Nonce
+  cachedStaticHtmlPartialProvider.getPartialContentAsync("http://my.partial", templateParameters = Map("NONCE_ATTR", CSPNonce.attr))
+
+  // Alternatively, you can request `Future[HtmlPartial]` if you want to manage success and failure yourself
+  htmlPartial.getPartial("http://my.partial")
 }
 ```
 
 ## Using HTML Form partials
 
-A special case of the static partials are HTML forms. By using `FormPartialRetriever` a `{{csrfToken}}` placeholder will be replaced with the Play CSRF token value.
+A special case of the static partials are HTML forms. By using `FormPartialRetriever` a csrfToken will be added in the request and any `{{csrfToken}}` placeholder will be replaced with the Play CSRF token value in the response.
+
+Note, these are not cached.
 
 ### example
 
 ```scala
 class MyView @Inject()(formPartialRetriever: FormPartialRetriever) {
-  formPartialRetriever.loadPartial("http://my.partial")
+  formPartialRetriever.getPartialContentAsync("http://my.partial")
 }
 ```
 
@@ -105,7 +115,11 @@ class MyView @Inject()(headerCarrierForPartialsConverter: HeaderCarrierForPartia
 
 ## Migrations
 
-### Vesion 8.3.0
+### Version 8.4.0
+
+Fixes template replacements for `templateParameters` parameter passed to `getPartial` and `getPartialContentAsync`.
+
+### Version 8.3.0
 
 Drops support for Play 2.6 and 2.7.
 

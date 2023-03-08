@@ -39,13 +39,16 @@ trait PartialRetriever extends TemplateProcessor {
   ): Future[HtmlPartial]
 
   def getPartial(
-    url: String,
+    url               : String,
     templateParameters: Map[String, String] = Map.empty
   )(implicit
     ec     : ExecutionContext,
     request: RequestHeader
   ): Future[HtmlPartial] =
-    loadPartial(url)
+    loadPartial(url).map {
+      case HtmlPartial.Success(title, content) => HtmlPartial.Success(title, processTemplate(content, templateParameters))
+      case other                               => other
+    }
 
   @deprecated("use non-blocking getPartialContentAsync", since = "8.0.0")
   def getPartialContent(
