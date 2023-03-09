@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,7 +45,7 @@ trait FormPartialRetriever extends PartialRetriever {
     CSRF.getToken(request).fold("")(_.value)
   }
 
-  def urlWithCsrfToken(url: String)(implicit request: RequestHeader): String = {
+  protected[partials] def urlWithCsrfToken(url: String)(implicit request: RequestHeader): String = {
     val sep = if (url.contains("?")) "&" else "?"
     s"$url${sep}csrfToken=$getCsrfToken"
   }
@@ -54,8 +54,8 @@ trait FormPartialRetriever extends PartialRetriever {
 
 @Singleton
 class FormPartialRetrieverImpl @Inject()(
-  http  : HttpClient,
+  httpClient: HttpClient,
   override val headerCarrierForPartialsConverter: HeaderCarrierForPartialsConverter
 ) extends FormPartialRetriever {
-  override val httpGet: CoreGet = http
+  override val httpGet: CoreGet = httpClient
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -79,10 +79,10 @@ trait CachedStaticHtmlPartialRetriever extends PartialRetriever {
 
 @Singleton
 class CachedStaticHtmlPartialRetrieverImpl @Inject()(
-  http  : HttpClient,
-  config: Config
+  httpClient : HttpClient,
+  config     : Config
 ) extends CachedStaticHtmlPartialRetriever {
-  override val httpGet: CoreGet = http
+  override val httpGet: CoreGet = httpClient
 
   override val refreshAfter: Duration =
     config.getDuration("play-partial.cache.refreshAfter").toMillis.millis

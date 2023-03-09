@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -103,7 +103,7 @@ class FormPartialSpec
       when(mockHttpGet.GET[HtmlPartial](any[String], any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
         .thenReturn(Future.successful(HtmlPartial.Failure()))
 
-      partialProvider.getPartial("foo").futureValue should be (HtmlPartial.Failure())
+      partialProvider.getPartial("foo").futureValue shouldBe HtmlPartial.Failure()
 
       verify(mockHttpGet)
         .GET(eqTo(s"foo?csrfToken=${csrfValue}"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext])
@@ -117,7 +117,7 @@ class FormPartialSpec
       when(mockHttpGet.GET[HtmlPartial](any[String], any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
         .thenReturn(Future.successful(HtmlPartial.Failure()))
 
-      partialProvider.getPartialContentAsync(url = "foo", errorMessage = Html("something went wrong")).futureValue.body should be("something went wrong")
+      partialProvider.getPartialContentAsync(url = "foo", errorMessage = Html("something went wrong")).futureValue.body shouldBe "something went wrong"
 
       verify(mockHttpGet)
         .GET(eqTo(s"foo?csrfToken=${csrfValue}"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext])
