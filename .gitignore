@@ -39,4 +39,5 @@ rebel.xml
 .vscode/
 .bloop/
 metals.sbt
+.bsp/
 
