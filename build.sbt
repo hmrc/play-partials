@@ -1,38 +1,37 @@
-val compileDependencies = PlayCrossCompilation.dependencies(
-  shared = Seq(
-    "com.github.ben-manes.caffeine" % "caffeine"  % "2.9.3", // To bump to 3.x required Java 11
-    "uk.gov.hmrc"        %% "crypto"              % "7.3.0"
-  ),
-  play28 = Seq(
-    "com.typesafe.play"  %% "play"                % "2.8.19",
-    "com.typesafe.play"  %% "filters-helpers"     % "2.8.19",
-    "com.typesafe.play"  %% "play-guice"          % "2.8.19",
-    "uk.gov.hmrc"        %% "http-verbs-play-28"  % "14.9.0"
+
+val scala2_12 = "2.12.18"
+val scala2_13 = "2.13.12"
+
+ThisBuild / majorVersion     := 9
+ThisBuild / isPublicArtefact := true
+ThisBuild / scalaVersion     := scala2_13
+
+lazy val library = (project in file("."))
+  .settings(publish / skip := true)
+  .aggregate(
+    playPartialsPlay28,
+    playPartialsPlay29
   )
+
+val sharedSources = Seq(
+  Compile / unmanagedSourceDirectories   += baseDirectory.value / s"../src-common/main/scala",
+  Compile / unmanagedResourceDirectories += baseDirectory.value / s"../src-common/main/resources",
+  Test    / unmanagedSourceDirectories   += baseDirectory.value / s"../src-common/test/scala",
+  Test    / unmanagedResourceDirectories += baseDirectory.value / s"../src-common/test/resources"
 )
 
-val testDependencies = PlayCrossCompilation.dependencies(
-  shared = Seq(
-    "org.scalatest"         %% "scalatest"     % "3.1.2"   % Test,
-    "com.vladsch.flexmark"  %  "flexmark-all"  % "0.35.10" % Test,
-    "org.mockito"           %% "mockito-scala" % "1.5.11"  % Test
-  ),
-  play28 = Seq(
-    "com.typesafe.play" %% "play-test"         % "2.8.19"  % Test,
-    "com.typesafe.play" %% "play-specs2"       % "2.8.19"  % Test
-  )
-)
-
-val scala2_12 = "2.12.17"
-val scala2_13 = "2.13.10"
-
-lazy val playPartials = Project("play-partials", file("."))
+lazy val playPartialsPlay28 = Project("play-partials-play-28", file("play-partials-play-28"))
   .disablePlugins(sbt.plugins.JUnitXmlReportPlugin)
   .settings(
-    majorVersion := 8,
-    isPublicArtefact := true,
-    scalaVersion := scala2_13,
     crossScalaVersions := Seq(scala2_12, scala2_13),
-    libraryDependencies ++= compileDependencies ++ testDependencies,
+    sharedSources,
+    libraryDependencies ++= LibDependencies.common ++ LibDependencies.play28
   )
-  .settings(PlayCrossCompilation.playCrossCompilationSettings)
+
+lazy val playPartialsPlay29 = Project("play-partials-play-29", file("play-partials-play-29"))
+  .disablePlugins(sbt.plugins.JUnitXmlReportPlugin)
+  .settings(
+    crossScalaVersions := Seq(scala2_13),
+    sharedSources,
+    libraryDependencies ++= LibDependencies.common ++ LibDependencies.play29
+  )

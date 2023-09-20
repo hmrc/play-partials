@@ -1,0 +1,217 @@
+/*
+ * Copyright 2021 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package uk.gov.hmrc.play.partials
+
+import com.google.inject.ImplementedBy
+import javax.inject.{Inject, Singleton}
+import play.api.http.HeaderNames
+import play.api.mvc.{Cookie, CookieHeaderEncoding, RequestHeader, SessionCookieBaker}
+import uk.gov.hmrc.crypto.{ApplicationCrypto, PlainText}
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.http.HeaderCarrierConverter
+import uk.gov.hmrc.crypto.Scrambled
+import uk.gov.hmrc.crypto.Crypted
+
+
+case class HeaderCarrierForPartials(
+  hc            : HeaderCarrier,
+  encodedCookies: String
+) {
+  def toHeaderCarrier =
+  hc/*{
+    println(s">>>>>>>> hc.otherHeaders=\n" + hc.otherHeaders.mkString("\n"))
+    // COOKIE is present in `otherHeaders` - it's important to copy the encrypted version into
+    // `extraHeaders` to be forwarded on, rather than replacing the one in `otherHeaders` since otherHeaders
+    // are only sent on if in `bootstrap.http.headersAllowlist`, which COOKIE is not.
+    hc.copy(extraHeaders = Seq(HeaderNames.COOKIE -> encodedCookies))
+  }*/
+}
+
+
+
+/* Most services don't "re"encrypt the cookie (just set crypt: String => String = identity) - 57 of them..
+
+   https://github.com/search?q=org%3Ahmrc+HeaderCarrierForPartialsConverter&type=code
+
+  A ha! https://github.com/hmrc/fh-registration-frontend/blob/42a252b0c00558cda521162b8fb60fc96738a564/app/uk/gov/hmrc/fhregistrationfrontend/connectors/BusinessCustomerFrontendConnector.scala#L43-L47
+
+
+
+   Don't encrypt:
+     https://github.com/hmrc/income-tax-subscription-frontend/blob/69edbc8f9908d90ac862d7cbd0ea7947df68ea5a/app/controllers/FeedbackController.scala#L111
+     https://github.com/hmrc/tai-frontend/blob/b0a0093c2fceb128dbffb1f6e3850d2efb1df97f/app/uk/gov/hmrc/tai/service/HasFormPartialService.scala#L34
+     add-taxes-frontend
+     https://github.com/hmrc/secure-data-exchange-management-frontend/blob/e5dac569a536c5dacb5c1ace237d4180e005ade7/app/config/SdesHeaderCarrierForPartialsConverter.scala#L15
+     https://github.com/hmrc/secure-data-exchange-admin-frontend/blob/344ff57aedfa0b5970212b41737fdb7b3aac86e6/app/uk/gov/hmrc/sdes/admin/config/SdesHeaderCarrierForPartialsConverter.scala#L16
+     https://github.com/hmrc/help-and-contact-frontend/blob/dc61f43f1b1842f82666d09cbe3f82d7d19ab6ff/app/config/HelpAndContactHeaderCarrierForPartialsConverter.scala#L24
+     https://github.com/hmrc/corporation-tax-frontend/blob/7c3171e29f402147ad3a2bd6c78651556bf37227/app/config/CorporationTaxHeaderCarrierForPartialsConverter.scala#L24
+     https://github.com/hmrc/vat-frontend/blob/b2161eecd504633a72529cf2502f13e24bb8347b/app/config/VatHeaderCarrierForPartialsConverter.scala#L26
+     https://github.com/hmrc/view-vat-returns-frontend/blob/744b4e7df6775e51bd02050d3892a6e327f773e8/app/config/VatHeaderCarrierForPartialsConverter.scala#L26
+     https://github.com/hmrc/manage-vat-subscription-frontend/blob/862cad2cd4e8a4a318bc730306296cbae390a9ff/app/config/VatcHeaderCarrierForPartialsConverter.scala#L25
+     https://github.com/hmrc/vat-summary-frontend/blob/6cd8ddddda6baad13d4d086d83cb3579004647e3/app/config/VatHeaderCarrierForPartialsConverter.scala#L26
+     https://github.com/hmrc/sa-message-renderer/blob/7bdeb6fb0200309e253646fccb168fd3a5c92be2/app/uk/gov/hmrc/messagerenderer/controllers/SaMessageRendererHeaderCarrierPartialConvertor.scala#L17
+     https://github.com/hmrc/manage-pensions-frontend/blob/104a656a8bc5ad757bd11190ff8e924781881db0/app/services/HeaderCarrierFunctions.scala#L30
+     https://github.com/hmrc/epaye-frontend/blob/04ce7a601777732d33bbd40a0a8ca59bc6ae89a9/app/playconfig/AgentPayeHeaderCarrier.scala#L13
+     https://github.com/hmrc/amls-frontend/blob/51fb623eec6aef8084d99a0ed8969d5efa0aedfe/app/config/AmlsHeaderCarrierForPartialsConverter.scala#L24
+
+   Those that do encrypt:
+     - message-frontend: https://github.com/hmrc/message-frontend/blob/880eb626878c17b624f32b91cdfef597d73bbb05/app/connectors/RendererConnector.scala#L25
+       the crypt is never used. it uses the raw headerCarrier (which doesn't forward the cookie at all) and http-verbs directly.
+     - pbikfrontend: https://github.com/hmrc/pbik-frontend/blob/b044616066f92b53a528f0c32c31b819ddbdd4a3/app/connectors/AuthenticationConnectors.scala#L39
+       Is double encrypting too (i.e. same bug)
+     - tai-frontend-history https://github.com/hmrc/tai-frontend-history/blob/dfa39cb4d1e667ea0dbf75bdb5906ab88ab003d3/app/uk/gov/hmrc/tai/connectors/PreferencesFrontendConnector.scala#L48
+       Deprecated for tai-frontend (which doesn't encrypt: https://github.com/hmrc/tai-frontend/blob/b0a0093c2fceb128dbffb1f6e3850d2efb1df97f/app/uk/gov/hmrc/tai/service/HasFormPartialService.scala#L34)
+
+     - tcs-frontend: https://github.com/hmrc/tcs-frontend/blob/e9e33babb1d71aa3ec5b648d8216c577c629e387/app/utils/EnhancedPartialRetriever.scala#L24
+       (Cannot start the service - runs out of memory...)
+     - autobars-frontend:
+         https://github.com/hmrc/autobars-frontend/blob/59b84ffc46112c73e01c3537b19ddeba7e277cd9/app/controllers/feedback/Feedback.scala#L40
+         https://github.com/hmrc/autobars-frontend/blob/59b84ffc46112c73e01c3537b19ddeba7e277cd9/app/config/FrontendWiring.scala#L30
+       (Can't start the service - can't reach Artifactory for autobars-xsd...)
+
+
+     - https://github.com/hmrc/income-tax-view-change-frontend/blob/63e0b4d8a89c708bf6b5373bd5f8e652f1dc1efa/app/config/frontendWiring.scala#L39
+     - https://github.com/hmrc/nisp-frontend/blob/02f988fe3563471439ad7344a9ddeaed55de66ab/app/uk/gov/hmrc/nisp/config/wiring/NispHeaderCarrierForPartialsConverter.scala#L25
+     - https://github.com/hmrc/company-registration-frontend/blob/42580c386b31ee50723f172d09cf2645f5a48743/app/controllers/feedback/FeedbackController.scala#L56
+     - https://github.com/hmrc/paye-registration-frontend/blob/b4e6515604ab417dcdb13e79e7c4f7f0c7973e5d/app/controllers/feedback/FeedbackController.scala#L58
+     - https://github.com/hmrc/digital-contact-demo-frontend/blob/0d506503c4428a1805df0dac89f8f9fd00c50fb3/app/connectors/connectors.scala#L43
+     - https://github.com/hmrc/rentreg-frontend/blob/6022ed7f71205a86cf0ba2ec2a32a35907215ef0/app/uk/gov/voa/rentreg/controllers/FeedbackController.scala#L41
+       Isn't used, sends Csrf-Token nocheck
+     - https://github.com/hmrc/for-frontend/blob/5eb2a576535a4c89a237480f9040d4519a5670f8/app/controllers/feedback/FeedbackController.scala#L57
+       Isn't used, sends Csrf-Token nocheck
+*/
+
+/*
+@ImplementedBy(classOf[HeaderCarrierForPartialsConverterImpl])
+trait HeaderCarrierForPartialsConverter {
+
+  def applicationCrypto: ApplicationCrypto
+  def sessionCookieBaker: SessionCookieBaker
+  def cookieHeaderEncoding: CookieHeaderEncoding
+
+  private[partials] def encryptCookie(cookie: String): String = {
+    val encrypted = applicationCrypto.SessionCookieCrypto.encrypt(PlainText(cookie)).value // Bug! was .toString
+    println(s">>>>> encryptCookie was: $cookie")
+    println(s">>>>> encrypts to: $encrypted")
+    println(s">>>>> decrypts to: ${applicationCrypto.SessionCookieCrypto.decrypt(Crypted(cookie)).value}")
+    val toSend = cookie
+    println(s">>>>> sending: $toSend")
+    toSend
+  }
+
+  // TODO cookies are already encrypted and signed
+  // cookies are already available in HeaderCarrier.otherHeaders (but excluded by bootstrap.http.headersAllowlist)
+  // Is this only required if we want to forward an updated session (e.g. Cookie("mdtp", Session.encode(session.data), secure = true)) -- see https://github.com/hmrc/tcs-frontend/blob/e9e33babb1d71aa3ec5b648d8216c577c629e387/app/utils/RequestWithSession.scala#L19
+  private def encryptSessionCookie(request: RequestHeader): String = {
+    val cookies: Seq[Cookie] =
+      request
+        .headers.getAll(HeaderNames.COOKIE)
+        .flatMap(cookieHeaderEncoding.decodeCookieHeader)
+
+    val updatedCookies =
+      cookies
+        .collect {
+          case cookie if cookie.name == sessionCookieBaker.COOKIE_NAME =>
+            cookie.copy(value = encryptCookie(cookie.value))
+          case other => other
+        }
+
+    cookieHeaderEncoding.encodeCookieHeader(updatedCookies)
+  }
+
+  def fromRequestWithEncryptedCookie(request: RequestHeader): HeaderCarrier = {
+    println(s">>>>> request.session= ${request.session}")
+    headerCarrierEncryptingSessionCookieFromRequest(request).toHeaderCarrier
+  }
+
+  implicit def headerCarrierEncryptingSessionCookieFromRequest(implicit request: RequestHeader): HeaderCarrierForPartials =
+    HeaderCarrierForPartials(
+      hc             = HeaderCarrierConverter.fromRequestAndSession(request, request.session),
+      encodedCookies = encryptSessionCookie(request)
+    )
+
+  implicit def headerCarrierForPartialsToHeaderCarrier(implicit hcfp: HeaderCarrierForPartials): HeaderCarrier =
+    hcfp.toHeaderCarrier
+}*/
+
+// To just forward the encrypted (and signed) cookies - just copy the Headers over in HeaderCarrier
+// This get's round the `bootstrap.http.headersAllowlist` config which stops the otherHeaders.Cookies being forwarded
+// TODO we don't need applicationCrypto, sessionCookieBaker, or cookieHeaderEncoding
+// TODO should we restrict which cookies are forwarded? Currently it's all of them, but we may only need to forward mdtp? (and mdtpdi?)
+// TODO then we can remove the `encodedCookies` in HeaderCarrierForPartials?
+@ImplementedBy(classOf[HeaderCarrierForPartialsConverterImpl])
+trait HeaderCarrierForPartialsConverter {
+
+  def applicationCrypto: ApplicationCrypto
+  def sessionCookieBaker: SessionCookieBaker
+  def cookieHeaderEncoding: CookieHeaderEncoding
+
+
+  def fromRequestWithEncryptedCookie(request: RequestHeader): HeaderCarrier = {
+    println(s">>>>> request.session= ${request.session}")
+    headerCarrierEncryptingSessionCookieFromRequest(request).toHeaderCarrier
+  }
+
+  implicit def headerCarrierEncryptingSessionCookieFromRequest(implicit request: RequestHeader): HeaderCarrierForPartials = {
+    val hc = HeaderCarrierConverter.fromRequestAndSession(request, request.session)
+    HeaderCarrierForPartials(
+      hc             = hc.copy(extraHeaders = hc.headers(Seq(HeaderNames.COOKIE))),
+      encodedCookies = ""
+    )
+  }
+
+  implicit def headerCarrierForPartialsToHeaderCarrier(implicit hcfp: HeaderCarrierForPartials): HeaderCarrier =
+    hcfp.toHeaderCarrier
+}
+
+// An alternative is to forward the updated session:
+// would that be useful?
+/*@ImplementedBy(classOf[HeaderCarrierForPartialsConverterImpl])
+trait HeaderCarrierForPartialsConverter {
+
+  def applicationCrypto: ApplicationCrypto
+  def sessionCookieBaker: SessionCookieBaker
+  def cookieHeaderEncoding: CookieHeaderEncoding
+
+  private[partials] def encryptCookie(cookie: String): String =
+    applicationCrypto.SessionCookieCrypto.encrypt(PlainText(cookie)).value // Bug! was .toString
+
+  def fromRequestWithEncryptedCookie(request: RequestHeader): HeaderCarrier = {
+    println(s">>>>> request.session= ${request.session}")
+    headerCarrierEncryptingSessionCookieFromRequest(request).toHeaderCarrier
+  }
+
+  implicit def headerCarrierEncryptingSessionCookieFromRequest(implicit request: RequestHeader): HeaderCarrierForPartials = {
+    val hc = HeaderCarrierConverter.fromRequestAndSession(request, request.session)
+    val newcookie = Cookie("mdtp", encryptCookie(sessionCookieBaker.encode(request.session.data)), secure = true)
+    val encodedCookies = cookieHeaderEncoding.encodeCookieHeader(Seq(newcookie)) // should it also forward other cookies on?
+    HeaderCarrierForPartials(
+      hc             = hc.copy(extraHeaders = Seq(HeaderNames.COOKIE -> encodedCookies)),
+      encodedCookies = ""
+    )
+  }
+
+  implicit def headerCarrierForPartialsToHeaderCarrier(implicit hcfp: HeaderCarrierForPartials): HeaderCarrier =
+    hcfp.toHeaderCarrier
+}*/
+
+@Singleton
+class HeaderCarrierForPartialsConverterImpl @Inject()(
+  override val cookieHeaderEncoding: CookieHeaderEncoding,
+  override val applicationCrypto   : ApplicationCrypto,
+  override val sessionCookieBaker  : SessionCookieBaker
+) extends HeaderCarrierForPartialsConverter
