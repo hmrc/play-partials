@@ -12,10 +12,12 @@ It supports caching the partials and substituting placeholders.
 Include the following dependency in your SBT build
 
 ```scala
-resolvers += Resolver.bintrayRepo("hmrc", "releases")
+resolvers += MavenRepository("HMRC-open-artefacts-maven2", "https://open.artefacts.tax.service.gov.uk/maven2")
 
-libraryDependencies += "uk.gov.hmrc" %% "play-partials" % "x.x.x"
+libraryDependencies += "uk.gov.hmrc" %% "play-partials-play-xx" % "x.x.x"
 ```
+
+Where `play-xx` is your version of Play (e.g. `play-29`).
 
 ## PartialRetriever
 
@@ -149,7 +151,12 @@ class MyView @Inject()(headerCarrierForPartialsConverter: HeaderCarrierForPartia
 ```
 
 
-## Migrations
+## Changes
+
+### Version 9.0.0
+- Built for Play 2.8 and 2.9.
+- There are specific artefacts for each version of play. The version does not include the play version any more.
+- `com.github.ben-manes.caffeine:caffeine` dependency has been updated to `3.x` which means it only supports Java 11 or above.
 
 ### Version 8.4.0
 
