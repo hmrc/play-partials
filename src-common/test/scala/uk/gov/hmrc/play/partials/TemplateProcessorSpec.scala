@@ -18,11 +18,12 @@ package uk.gov.hmrc.play.partials
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
+import play.api.mvc.{AnyContent, Request}
 import play.api.test.FakeRequest
 import play.twirl.api.Html
 
 class TemplateProcessorSpec extends AnyWordSpecLike with Matchers {
-  implicit val request = FakeRequest()
+  implicit val request: Request[AnyContent] = FakeRequest()
 
   val processor = new TemplateProcessor {}
 

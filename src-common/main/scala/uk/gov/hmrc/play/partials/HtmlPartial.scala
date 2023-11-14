@@ -55,7 +55,7 @@ object HtmlPartial {
       }
   }
 
-  implicit val readsPartial = new HtmlPartialHttpReads {}
+  implicit val readsPartial: HtmlPartialHttpReads = new HtmlPartialHttpReads {}
 
   val connectionExceptionsAsHtmlPartialFailure: PartialFunction[Throwable, HtmlPartial] = {
     case e@(_: BadGatewayException | _: GatewayTimeoutException) =>
