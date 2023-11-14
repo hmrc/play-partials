@@ -10,7 +10,8 @@ lazy val library = (project in file("."))
   .settings(publish / skip := true)
   .aggregate(
     playPartialsPlay28,
-    playPartialsPlay29
+    playPartialsPlay29,
+    playPartialsPlay30
   )
 
 val sharedSources = Seq(
@@ -25,7 +26,7 @@ lazy val playPartialsPlay28 = Project("play-partials-play-28", file("play-partia
   .settings(
     crossScalaVersions := Seq(scala2_12, scala2_13),
     sharedSources,
-    libraryDependencies ++= LibDependencies.common ++ LibDependencies.play28
+    libraryDependencies ++= LibDependencies.play28
   )
 
 lazy val playPartialsPlay29 = Project("play-partials-play-29", file("play-partials-play-29"))
@@ -33,5 +34,13 @@ lazy val playPartialsPlay29 = Project("play-partials-play-29", file("play-partia
   .settings(
     crossScalaVersions := Seq(scala2_13),
     sharedSources,
-    libraryDependencies ++= LibDependencies.common ++ LibDependencies.play29
+    libraryDependencies ++= LibDependencies.play29
+  )
+
+lazy val playPartialsPlay30 = Project("play-partials-play-30", file("play-partials-play-30"))
+  .disablePlugins(sbt.plugins.JUnitXmlReportPlugin)
+  .settings(
+    crossScalaVersions := Seq(scala2_13),
+    sharedSources,
+    libraryDependencies ++= LibDependencies.play30
   )

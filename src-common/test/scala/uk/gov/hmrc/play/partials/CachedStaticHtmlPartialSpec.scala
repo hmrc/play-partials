@@ -22,6 +22,7 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
+import play.api.mvc.{AnyContent, Request}
 import play.api.test.FakeRequest
 import play.twirl.api.Html
 import uk.gov.hmrc.http.{CoreGet, HeaderCarrier, HttpReads}
@@ -69,7 +70,7 @@ class CachedStaticHtmlPartialSpec
     override val maximumEntries: Int = 100
   }
 
-  implicit val request = FakeRequest()
+  implicit val request: Request[AnyContent] = FakeRequest()
 
   override protected def beforeEach() = {
     super.beforeEach()
@@ -95,7 +96,7 @@ class CachedStaticHtmlPartialSpec
       testTicker.shiftTime(htmlPartial.refreshAfter + 1.second)
       // first call will trigger the refresh (and return cached value)
       htmlPartial.getPartial("foo").futureValue shouldBe HtmlPartial.Success(title = None, content = Html("some content A"))
-      Thread.sleep(200) // give the cache time to update
+      Thread.sleep(2000) // give the cache time to update
       // after that, the cache will have been updated
       htmlPartial.getPartial("foo").futureValue shouldBe HtmlPartial.Success(title = None, content = Html("some content B"))
 

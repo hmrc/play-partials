@@ -21,6 +21,7 @@ import play.twirl.api.Html
 
 trait TemplateProcessor {
 
+  @annotation.nowarn("msg=never used")
   def processTemplate(template: Html, parameters: Map[String, String])(implicit request: RequestHeader): Html = {
     val templateString = template.toString()
     Html(replaceTemplates(templateString, parameters))
