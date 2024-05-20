@@ -26,7 +26,7 @@ import play.api.mvc.RequestHeader
 import uk.gov.hmrc.http.{CoreGet, HeaderCarrier, HttpClient}
 import com.github.benmanes.caffeine.cache.{AsyncLoadingCache, Caffeine, Ticker}
 
-import scala.compat.java8.FutureConverters.{fromExecutor, toJava, toScala}
+import scala.jdk.FutureConverters._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.{Duration, DurationLong}
 
@@ -54,13 +54,13 @@ trait CachedStaticHtmlPartialRetriever extends PartialRetriever {
       .refreshAfterWrite(refreshAfter.toMillis, TimeUnit.MILLISECONDS)
       .expireAfterWrite(expireAfter.toMillis, TimeUnit.MILLISECONDS)
       .buildAsync { (url, executor) =>
-        implicit val ec = fromExecutor(executor)
-        implicit val hc = HeaderCarrier()
-        toJava(fetchPartial(url)).toCompletableFuture
+        implicit val ec: ExecutionContext = ExecutionContext.fromExecutor(executor)
+        implicit val hc: HeaderCarrier = HeaderCarrier()
+        fetchPartial(url).asJava.toCompletableFuture
       }
 
   override protected def loadPartial(url: String)(implicit ec: ExecutionContext, request: RequestHeader): Future[HtmlPartial] =
-    toScala(cache.get(url))
+    cache.get(url).asScala
       .recoverWith {
         case e: Exception =>
           logger.error(s"Could not load partial", e)

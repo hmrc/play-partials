@@ -17,11 +17,13 @@
 package uk.gov.hmrc.play.partials
 
 import com.github.benmanes.caffeine.cache.Ticker
-import org.mockito.{ArgumentMatchersSugar, MockitoSugar}
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
+import org.mockito.Mockito.{reset, times, verify, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.mvc.{AnyContent, Request}
 import play.api.test.FakeRequest
 import play.twirl.api.Html
@@ -35,7 +37,6 @@ class CachedStaticHtmlPartialSpec
   extends AnyWordSpecLike
      with Matchers
      with MockitoSugar
-     with ArgumentMatchersSugar
      with BeforeAndAfterEach
      with ScalaFutures
      with IntegrationPatience {
@@ -44,19 +45,7 @@ class CachedStaticHtmlPartialSpec
 
   val mockHttpGet = mock[CoreGet]
 
-  val testTicker = new Ticker {
-
-    private val timestamp: AtomicLong = new AtomicLong(0)
-
-    override def read(): Long =
-      timestamp.get
-
-    def shiftTime(time: Duration): Unit =
-      timestamp.updateAndGet(_ + time.toNanos)
-
-    def resetTime(): Unit =
-      timestamp.set(0)
-  }
+  val testTicker = new TestTicker
 
   val htmlPartial = new CachedStaticHtmlPartialRetriever {
     override val httpGet: CoreGet = mockHttpGet
@@ -204,4 +193,17 @@ class CachedStaticHtmlPartialSpec
       htmlPartial.getPartialContentAsync(url = "foo", templateParameters = Map("PLACEHOLDER" -> "text2")).futureValue.body shouldBe "some content with text2"
     }
   }
+}
+
+class TestTicker extends Ticker {
+  private val timestamp: AtomicLong = new AtomicLong(0)
+
+  override def read(): Long =
+    timestamp.get
+
+  def shiftTime(time: Duration): Unit =
+    timestamp.updateAndGet(_ + time.toNanos)
+
+  def resetTime(): Unit =
+    timestamp.set(0)
 }

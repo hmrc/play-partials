@@ -8,26 +8,21 @@ object LibDependencies {
   private def play(playSuffix: String) = Seq(
     playOrg(playSuffix)             %% playFilters(playSuffix)   % playVersion(playSuffix),
     playOrg(playSuffix)             %% "play-guice"              % playVersion(playSuffix),
-    "uk.gov.hmrc"                   %% s"http-verbs-$playSuffix" % "14.12.0",
+    "uk.gov.hmrc"                   %% s"http-verbs-$playSuffix" % "15.0.0",
     "com.github.ben-manes.caffeine" %  "caffeine"                % "3.1.8",
-    "uk.gov.hmrc"                   %% "crypto"                  % "7.4.0",
+    "uk.gov.hmrc"                   %% "crypto"                  % "8.0.0",
     playOrg(playSuffix)             %% "play-test"               % playVersion(playSuffix) % Test,
     playOrg(playSuffix)             %% "play-specs2"             % playVersion(playSuffix) % Test,
-    "org.scalatest"                 %% "scalatest"               % "3.2.17"                % Test,
-    "com.vladsch.flexmark"          %  "flexmark-all"            % "0.62.2"                % Test,
-    "org.mockito"                   %% "mockito-scala-scalatest" % "1.17.14"               % Test
-  ) ++
-    (if (playSuffix == "play-30")
-       Seq("org.scala-lang.modules" %% "scala-java8-compat" % "1.0.2") // can be dropped with scala 2.12 (play-28): https://github.com/scala/scala-java8-compat
-     else
-       Seq.empty // correct version provided transitively
-    )
+    "org.scalatest"                 %% "scalatest"               % "3.2.18"                % Test,
+    "com.vladsch.flexmark"          %  "flexmark-all"            % "0.64.8"                % Test,
+    "org.scalatestplus"             %% "mockito-3-4"             % "3.2.10.0"              % Test
+  )
 
   private def playVersion(playSuffix: String) =
     playSuffix match {
-      case "play-28" => "2.8.20"
-      case "play-29" => "2.9.0"
-      case "play-30" => "3.0.0"
+      case "play-28" => "2.8.21"
+      case "play-29" => "2.9.3"
+      case "play-30" => "3.0.3"
     }
 
   private def playOrg(playSuffix: String) =

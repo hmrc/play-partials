@@ -16,11 +16,13 @@
 
 package uk.gov.hmrc.play.partials
 
-import org.mockito.{ArgumentMatchersSugar, MockitoSugar}
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
+import org.mockito.Mockito.{reset, times, verify, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.{AnyContent, Request}
 import play.api.test.{FakeRequest, WithApplication}
@@ -28,6 +30,7 @@ import play.api.test.CSRFTokenHelper._
 import play.filters.csrf.CSRF
 import play.twirl.api.Html
 import uk.gov.hmrc.http.{CoreGet, HeaderCarrier, HttpReads}
+import TestUtils.withApplication
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -35,7 +38,6 @@ class FormPartialSpec
   extends AnyWordSpecLike
      with Matchers
      with MockitoSugar
-     with ArgumentMatchersSugar
      with BeforeAndAfterEach
      with ScalaFutures {
 
@@ -63,7 +65,7 @@ class FormPartialSpec
   }
 
   "get" should {
-    "retrieve HTML from the given URL" in new WithApplication(fakeApplication) {
+    "retrieve HTML from the given URL" in withApplication(fakeApplication) {
       implicit val request: Request[AnyContent] = FakeRequest().withCSRFToken
 
       val csrfValue = CSRF.getToken(request).get.value
@@ -82,7 +84,7 @@ class FormPartialSpec
         .GET(eqTo(s"foo?csrfToken=${csrfValue}"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext])
     }
 
-    "retrieve HTML from the given URL, which includes query string" in new WithApplication(fakeApplication) {
+    "retrieve HTML from the given URL, which includes query string" in withApplication(fakeApplication) {
       implicit val request: Request[AnyContent] = FakeRequest().withCSRFToken
 
       val csrfValue = CSRF.getToken(request).get.value
@@ -96,7 +98,7 @@ class FormPartialSpec
         .GET(eqTo(s"foo?attrA=valA&attrB=valB&csrfToken=${csrfValue}"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext])
     }
 
-    "return HtmlPartial.Failure when there is an exception retrieving the partial from the URL" in new WithApplication(fakeApplication) {
+    "return HtmlPartial.Failure when there is an exception retrieving the partial from the URL" in withApplication(fakeApplication) {
       implicit val request: Request[AnyContent] = FakeRequest().withCSRFToken
 
       val csrfValue = CSRF.getToken(request).get.value
@@ -110,7 +112,7 @@ class FormPartialSpec
         .GET(eqTo(s"foo?csrfToken=${csrfValue}"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext])
     }
 
-    "return provided Html when there is an exception retrieving the partial from the URL" in new WithApplication(fakeApplication) {
+    "return provided Html when there is an exception retrieving the partial from the URL" in withApplication(fakeApplication) {
       implicit val request: Request[AnyContent] = FakeRequest().withCSRFToken
 
       val csrfValue = CSRF.getToken(request).get.value
@@ -126,7 +128,7 @@ class FormPartialSpec
   }
 
   "processTemplate" should {
-    "return the original template if there is no csrf token in it" in new WithApplication(fakeApplication) {
+    "return the original template if there is no csrf token in it" in withApplication(fakeApplication) {
       implicit val request: Request[AnyContent] = FakeRequest().withCSRFToken
 
       val template =
@@ -142,7 +144,7 @@ class FormPartialSpec
       partialProvider.processTemplate(Html(template), Map("param" -> "world")).body shouldBe expectedTemplate
     }
 
-    "use empty string for csrf token if there is no csrf token in the request" in new WithApplication(fakeApplication) {
+    "use empty string for csrf token if there is no csrf token in the request" in withApplication(fakeApplication) {
       implicit val request: Request[AnyContent] = FakeRequest()
 
       val template =
@@ -158,7 +160,7 @@ class FormPartialSpec
       partialProvider.processTemplate(Html(template), Map("param" -> "world")).body shouldBe expectedTemplate
     }
 
-    "return the template with the CSRF token placeholder replaced with the actual value" in new WithApplication(fakeApplication) {
+    "return the template with the CSRF token placeholder replaced with the actual value" in withApplication(fakeApplication) {
       implicit val request: Request[AnyContent] = FakeRequest().withCSRFToken
 
       val csrfValue = CSRF.getToken(request).get.value
@@ -182,17 +184,17 @@ class FormPartialSpec
 
     val csrfValue = CSRF.getToken(request).get.value
 
-    "add a query string" in new WithApplication(fakeApplication) {
+    "add a query string" in withApplication(fakeApplication) {
       val url = partialProvider.urlWithCsrfToken("/contact/problem_reports")
       url shouldBe s"/contact/problem_reports?csrfToken=${csrfValue}"
     }
 
-    "append to the existing query string with 1 value" in new WithApplication(fakeApplication) {
+    "append to the existing query string with 1 value" in withApplication(fakeApplication) {
       val url = partialProvider.urlWithCsrfToken("/contact/problem_reports?service=yta")
       url shouldBe s"/contact/problem_reports?service=yta&csrfToken=${csrfValue}"
     }
 
-    "append to the existing query string with 2 values" in new WithApplication(fakeApplication) {
+    "append to the existing query string with 2 values" in withApplication(fakeApplication) {
       val url = partialProvider.urlWithCsrfToken("/contact/problem_reports?service=yta&secure=true")
       url shouldBe s"/contact/problem_reports?service=yta&secure=true&csrfToken=${csrfValue}"
     }
