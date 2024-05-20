@@ -20,7 +20,7 @@ import com.google.inject.ImplementedBy
 import javax.inject.{Inject, Singleton}
 import play.api.mvc.RequestHeader
 import play.twirl.api.Html
-import uk.gov.hmrc.http.{CoreGet, HttpClient}
+import uk.gov.hmrc.http.client.HttpClientV2
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -36,8 +36,7 @@ trait FormPartialRetriever extends PartialRetriever {
 
   override protected def loadPartial(url: String)(implicit ec: ExecutionContext, request: RequestHeader): Future[HtmlPartial] = {
     implicit val hc = headerCarrierForPartialsConverter.fromRequestWithEncryptedCookie(request)
-    httpGet.GET[HtmlPartial](urlWithCsrfToken(url))
-      .recover(HtmlPartial.connectionExceptionsAsHtmlPartialFailure)
+    partialFetcher.fetchPartial(urlWithCsrfToken(url))
   }
 
   protected def getCsrfToken(implicit request: RequestHeader): String = {
@@ -54,8 +53,6 @@ trait FormPartialRetriever extends PartialRetriever {
 
 @Singleton
 class FormPartialRetrieverImpl @Inject()(
-  httpClient: HttpClient,
+  override val httpClientV2: HttpClientV2,
   override val headerCarrierForPartialsConverter: HeaderCarrierForPartialsConverter
-) extends FormPartialRetriever {
-  override val httpGet: CoreGet = httpClient
-}
+) extends FormPartialRetriever

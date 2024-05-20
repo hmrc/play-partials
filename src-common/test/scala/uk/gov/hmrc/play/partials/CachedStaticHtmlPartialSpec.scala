@@ -27,7 +27,8 @@ import org.scalatestplus.mockito.MockitoSugar
 import play.api.mvc.{AnyContent, Request}
 import play.api.test.FakeRequest
 import play.twirl.api.Html
-import uk.gov.hmrc.http.{CoreGet, HeaderCarrier, HttpReads}
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.client.HttpClientV2
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.{Duration, DurationLong}
@@ -43,12 +44,12 @@ class CachedStaticHtmlPartialSpec
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  val mockHttpGet = mock[CoreGet]
+  val mockPartialFetcher = mock[PartialFetcher]
 
   val testTicker = new TestTicker
 
   val htmlPartial = new CachedStaticHtmlPartialRetriever {
-    override val httpGet: CoreGet = mockHttpGet
+    override val httpClientV2: HttpClientV2 = mock[HttpClientV2]
 
     override lazy val cacheTicker: Ticker = testTicker
 
@@ -57,20 +58,22 @@ class CachedStaticHtmlPartialSpec
     override val expireAfter: Duration = 2.hours
 
     override val maximumEntries: Int = 100
+
+    override lazy val partialFetcher = mockPartialFetcher
   }
 
   implicit val request: Request[AnyContent] = FakeRequest()
 
   override protected def beforeEach() = {
     super.beforeEach()
-    reset(mockHttpGet)
+    reset(mockPartialFetcher)
     testTicker.resetTime()
     htmlPartial.cache.synchronous.invalidateAll()
   }
 
   "CachedStaticHtmlPartial.getPartial" should {
     "retrieve HTML from the given URL" in {
-      when(mockHttpGet.GET[HtmlPartial](eqTo("foo"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
+      when(mockPartialFetcher.fetchPartial(eqTo("foo"))(any[ExecutionContext], any[HeaderCarrier]))
         .thenReturn(
           Future.successful(HtmlPartial.Success(title = None, content = Html("some content A"))),
           Future.successful(HtmlPartial.Success(title = None, content = Html("some content B")))
@@ -89,12 +92,12 @@ class CachedStaticHtmlPartialSpec
       // after that, the cache will have been updated
       htmlPartial.getPartial("foo").futureValue shouldBe HtmlPartial.Success(title = None, content = Html("some content B"))
 
-      verify(mockHttpGet, times(2))
-        .GET[HtmlPartial](eqTo("foo"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext])
+      verify(mockPartialFetcher, times(2))
+        .fetchPartial(eqTo("foo"))(any[ExecutionContext], any[HeaderCarrier])
     }
 
     "use stale value when there is an exception retrieving the partial from the URL" in {
-      when(mockHttpGet.GET[HtmlPartial](eqTo("foo"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
+      when(mockPartialFetcher.fetchPartial(eqTo("foo"))(any[ExecutionContext], any[HeaderCarrier]))
         .thenReturn(
           Future.successful(HtmlPartial.Success(title = None, content = Html("some content C"))),
           Future.successful(HtmlPartial.Failure())
@@ -109,14 +112,14 @@ class CachedStaticHtmlPartialSpec
     }
 
     "return HtmlPartial.Failure when there is an exception retrieving the partial from the URL and we have no cached value yet" in {
-      when(mockHttpGet.GET[HtmlPartial](eqTo("foo"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
+      when(mockPartialFetcher.fetchPartial(eqTo("foo"))(any[ExecutionContext], any[HeaderCarrier]))
         .thenReturn(Future.successful(HtmlPartial.Failure()))
 
       htmlPartial.getPartial("foo").futureValue shouldBe HtmlPartial.Failure()
     }
 
     "return HtmlPartial.Failure when stale value has expired and there is an exception reloading the cache" in {
-      when(mockHttpGet.GET[HtmlPartial](eqTo("foo"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
+      when(mockPartialFetcher.fetchPartial(eqTo("foo"))(any[ExecutionContext], any[HeaderCarrier]))
         .thenReturn(
           Future.successful(HtmlPartial.Success(title = None, content = Html("some content D"))),
           Future.successful(HtmlPartial.Failure())
@@ -133,16 +136,18 @@ class CachedStaticHtmlPartialSpec
       //   NOTE - yes this is a slow and ugly test - but it is catching a real bug that was not otherwise caught with the testTicker
 
       val htmlPartialWithRealTicker = new CachedStaticHtmlPartialRetriever {
-        override val httpGet = mockHttpGet
+        override val httpClientV2 = mock[HttpClientV2]
 
         override val refreshAfter: Duration = 2.seconds
 
         override val expireAfter: Duration = 1.hour
 
         override val maximumEntries: Int = 100
+
+        override lazy val partialFetcher = mockPartialFetcher
       }
 
-      when(mockHttpGet.GET[HtmlPartial](eqTo("foo"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
+      when(mockPartialFetcher.fetchPartial(eqTo("foo"))(any[ExecutionContext], any[HeaderCarrier]))
         .thenReturn(
           Future.successful(HtmlPartial.Success(title = None, content = Html("some content A"))),
           Future.successful(HtmlPartial.Success(title = None, content = Html("some content B")))
@@ -163,7 +168,7 @@ class CachedStaticHtmlPartialSpec
     }
 
     "apply templates" in {
-      when(mockHttpGet.GET[HtmlPartial](eqTo("foo"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
+      when(mockPartialFetcher.fetchPartial(eqTo("foo"))(any[ExecutionContext], any[HeaderCarrier]))
         .thenReturn(
           Future.successful(HtmlPartial.Success(title = None, content = Html("some content with {{PLACEHOLDER}}")))
         )
@@ -176,14 +181,14 @@ class CachedStaticHtmlPartialSpec
 
   "CachedStaticHtmlPartial.getPartialContentAsync" should {
     "return provided Html when there is an exception retrieving the partial from the URL and we have no cached value yet" in {
-      when(mockHttpGet.GET[HtmlPartial](eqTo("foo"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
+      when(mockPartialFetcher.fetchPartial(eqTo("foo"))(any[ExecutionContext], any[HeaderCarrier]))
         .thenReturn(Future.successful(HtmlPartial.Failure()))
 
       htmlPartial.getPartialContentAsync(url = "foo", errorMessage = Html("something went wrong")).futureValue.body shouldBe "something went wrong"
     }
 
     "apply templates" in {
-      when(mockHttpGet.GET[HtmlPartial](eqTo("foo"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
+      when(mockPartialFetcher.fetchPartial(eqTo("foo"))(any[ExecutionContext], any[HeaderCarrier]))
         .thenReturn(
           Future.successful(HtmlPartial.Success(title = None, content = Html("some content with {{PLACEHOLDER}}")))
         )

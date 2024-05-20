@@ -23,7 +23,8 @@ import com.typesafe.config.Config
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.mvc.RequestHeader
-import uk.gov.hmrc.http.{CoreGet, HeaderCarrier, HttpClient}
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.client.HttpClientV2
 import com.github.benmanes.caffeine.cache.{AsyncLoadingCache, Caffeine, Ticker}
 
 import scala.jdk.FutureConverters._
@@ -56,7 +57,13 @@ trait CachedStaticHtmlPartialRetriever extends PartialRetriever {
       .buildAsync { (url, executor) =>
         implicit val ec: ExecutionContext = ExecutionContext.fromExecutor(executor)
         implicit val hc: HeaderCarrier = HeaderCarrier()
-        fetchPartial(url).asJava.toCompletableFuture
+        partialFetcher
+          .fetchPartial(url)
+          .flatMap {
+            case s: HtmlPartial.Success => Future.successful(s)
+            case f: HtmlPartial.Failure => Future.failed(new RuntimeException(s"Failed to fetch partial. Status: ${f.status}")) // this ensures the failure is not cached
+          }
+          .asJava.toCompletableFuture
       }
 
   override protected def loadPartial(url: String)(implicit ec: ExecutionContext, request: RequestHeader): Future[HtmlPartial] =
@@ -66,24 +73,13 @@ trait CachedStaticHtmlPartialRetriever extends PartialRetriever {
           logger.error(s"Could not load partial", e)
           Future.successful(HtmlPartial.Failure())
       }
-
-  private def fetchPartial(url: String)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[HtmlPartial.Success] =
-    httpGet.GET[HtmlPartial](url)
-      .recover(HtmlPartial.connectionExceptionsAsHtmlPartialFailure)
-      .flatMap {
-        case s: HtmlPartial.Success => Future.successful(s)
-        case f: HtmlPartial.Failure => Future.failed(sys.error(s"Failed to fetch partial. Status: ${f.status}")) // this ensures the failure is not cached
-    }
 }
-
 
 @Singleton
 class CachedStaticHtmlPartialRetrieverImpl @Inject()(
-  httpClient : HttpClient,
-  config     : Config
+  override val httpClientV2: HttpClientV2,
+  config      : Config
 ) extends CachedStaticHtmlPartialRetriever {
-  override val httpGet: CoreGet = httpClient
-
   override val refreshAfter: Duration =
     config.getDuration("play-partial.cache.refreshAfter").toMillis.millis
 

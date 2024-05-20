@@ -25,11 +25,12 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.{AnyContent, Request}
-import play.api.test.{FakeRequest, WithApplication}
+import play.api.test.FakeRequest
 import play.api.test.CSRFTokenHelper._
 import play.filters.csrf.CSRF
 import play.twirl.api.Html
-import uk.gov.hmrc.http.{CoreGet, HeaderCarrier, HttpReads}
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.client.HttpClientV2
 import TestUtils.withApplication
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -48,11 +49,14 @@ class FormPartialSpec
       .configure("csrf.sign.tokens" -> false)
       .build()
 
-  val mockHttpGet = mock[CoreGet]
+  val mockPartialFetcher = mock[PartialFetcher]
 
   val partialProvider = new FormPartialRetriever {
-    override val httpGet: CoreGet =
-      mockHttpGet
+    override val httpClientV2: HttpClientV2 =
+      mock[HttpClientV2]
+
+    override lazy val partialFetcher: PartialFetcher =
+      mockPartialFetcher
 
     override val headerCarrierForPartialsConverter: HeaderCarrierForPartialsConverter =
       fakeApplication.injector.instanceOf[HeaderCarrierForPartialsConverter]
@@ -61,7 +65,7 @@ class FormPartialSpec
   override protected def beforeEach() = {
     super.beforeEach()
 
-    reset(mockHttpGet)
+    reset(mockPartialFetcher)
   }
 
   "get" should {
@@ -70,7 +74,7 @@ class FormPartialSpec
 
       val csrfValue = CSRF.getToken(request).get.value
 
-      when(mockHttpGet.GET[HtmlPartial](any[String], any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
+      when(mockPartialFetcher.fetchPartial(any[String])(any[ExecutionContext], any[HeaderCarrier]))
         .thenReturn(
           Future.successful(HtmlPartial.Success(title = None, content = Html("some content A"))),
           Future.successful(HtmlPartial.Success(title = None, content = Html("some content B")))
@@ -80,8 +84,8 @@ class FormPartialSpec
 
       partialProvider.getPartial("foo").futureValue shouldBe HtmlPartial.Success(title = None, content = Html("some content B"))
 
-      verify(mockHttpGet, times(2))
-        .GET(eqTo(s"foo?csrfToken=${csrfValue}"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext])
+      verify(mockPartialFetcher, times(2))
+        .fetchPartial(eqTo(s"foo?csrfToken=${csrfValue}"))(any[ExecutionContext], any[HeaderCarrier])
     }
 
     "retrieve HTML from the given URL, which includes query string" in withApplication(fakeApplication) {
@@ -89,13 +93,13 @@ class FormPartialSpec
 
       val csrfValue = CSRF.getToken(request).get.value
 
-      when(mockHttpGet.GET[HtmlPartial](any[String], any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
+      when(mockPartialFetcher.fetchPartial(any[String])(any[ExecutionContext], any[HeaderCarrier]))
         .thenReturn(Future.successful(HtmlPartial.Success(title = None, content = Html("some content C"))))
 
       partialProvider.getPartial("foo?attrA=valA&attrB=valB").futureValue shouldBe HtmlPartial.Success(title = None, content = Html("some content C"))
 
-      verify(mockHttpGet)
-        .GET(eqTo(s"foo?attrA=valA&attrB=valB&csrfToken=${csrfValue}"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext])
+      verify(mockPartialFetcher)
+        .fetchPartial(eqTo(s"foo?attrA=valA&attrB=valB&csrfToken=${csrfValue}"))(any[ExecutionContext], any[HeaderCarrier])
     }
 
     "return HtmlPartial.Failure when there is an exception retrieving the partial from the URL" in withApplication(fakeApplication) {
@@ -103,13 +107,13 @@ class FormPartialSpec
 
       val csrfValue = CSRF.getToken(request).get.value
 
-      when(mockHttpGet.GET[HtmlPartial](any[String], any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
+      when(mockPartialFetcher.fetchPartial(any[String])(any[ExecutionContext], any[HeaderCarrier]))
         .thenReturn(Future.successful(HtmlPartial.Failure()))
 
       partialProvider.getPartial("foo").futureValue shouldBe HtmlPartial.Failure()
 
-      verify(mockHttpGet)
-        .GET(eqTo(s"foo?csrfToken=${csrfValue}"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext])
+      verify(mockPartialFetcher)
+        .fetchPartial(eqTo(s"foo?csrfToken=${csrfValue}"))(any[ExecutionContext], any[HeaderCarrier])
     }
 
     "return provided Html when there is an exception retrieving the partial from the URL" in withApplication(fakeApplication) {
@@ -117,13 +121,13 @@ class FormPartialSpec
 
       val csrfValue = CSRF.getToken(request).get.value
 
-      when(mockHttpGet.GET[HtmlPartial](any[String], any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext]))
+      when(mockPartialFetcher.fetchPartial(any[String])(any[ExecutionContext], any[HeaderCarrier]))
         .thenReturn(Future.successful(HtmlPartial.Failure()))
 
       partialProvider.getPartialContentAsync(url = "foo", errorMessage = Html("something went wrong")).futureValue.body shouldBe "something went wrong"
 
-      verify(mockHttpGet)
-        .GET(eqTo(s"foo?csrfToken=${csrfValue}"), any, any)(any[HttpReads[HtmlPartial]], any[HeaderCarrier], any[ExecutionContext])
+      verify(mockPartialFetcher)
+        .fetchPartial(eqTo(s"foo?csrfToken=${csrfValue}"))(any[ExecutionContext], any[HeaderCarrier])
     }
   }
 
