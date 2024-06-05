@@ -30,7 +30,7 @@ First implement `PartialRetriever` and override `loadPartial`:
 ```scala
 object MyRetriever extends PartialRetriever {
   override def loadPartial(url: String): Future[HtmlPartial] =
-    httpClient.GET[HtmlPartial](url"/some/url").recover(HtmlPartial.connectionExceptionsAsHtmlPartialFailure)
+    httpClientV2.get(url"/some/url").execute[HtmlPartial].recover(HtmlPartial.connectionExceptionsAsHtmlPartialFailure)
 }
 ```
 
@@ -110,7 +110,7 @@ should be used on the page.
 ```scala
 object Connector {
   def somePartial(): Future[HtmlPartial] =
-    httpClient.GET[HtmlPartial](url"/some/url").recover(HtmlPartial.connectionExceptionsAsHtmlPartialFailure)
+    httpClientV2.get(url"/some/url").execute[HtmlPartial].recover(HtmlPartial.connectionExceptionsAsHtmlPartialFailure)
 }
 
 // Elsewhere in your service:
@@ -145,13 +145,18 @@ In order to include cookies in the partial request, the HeaderCarrier must be cr
 class MyView @Inject()(headerCarrierForPartialsConverter: HeaderCarrierForPartialsConverter) {
   def getPartial(request: RequestHeader) = {
     implicit val hc = headerCarrierForPartialsConverter.fromRequestWithEncryptedCookie(request)
-    httpClient.GET[HtmlPartial](url("http://my.partial"))
+    httpClientV2.get(url"http://my.partial").execute[HtmlPartial]
   }
 }
 ```
 
 
 ## Changes
+
+### Version 10.0.0
+
+- Cross compiled for Scala 3 and 2.13. Scala 2.12 has been dropped.
+- Uses HttpClientV2
 
 ### Version 9.0.0
 - Built for Play 2.8 and 2.9.

@@ -1,10 +1,14 @@
 
-val scala2_12 = "2.12.18"
 val scala2_13 = "2.13.12"
+val scala3    = "3.3.3"
 
-ThisBuild / majorVersion     := 9
+ThisBuild / majorVersion     := 10
 ThisBuild / isPublicArtefact := true
 ThisBuild / scalaVersion     := scala2_13
+
+// Disable multiple project tests running at the same time
+// https://www.scala-sbt.org/1.x/docs/Parallel-Execution.html
+Global / concurrentRestrictions += Tags.limitSum(1, Tags.Test, Tags.Untagged)
 
 lazy val library = (project in file("."))
   .settings(publish / skip := true)
@@ -24,7 +28,6 @@ val sharedSources = Seq(
 lazy val playPartialsPlay28 = Project("play-partials-play-28", file("play-partials-play-28"))
   .disablePlugins(sbt.plugins.JUnitXmlReportPlugin)
   .settings(
-    crossScalaVersions := Seq(scala2_12, scala2_13),
     sharedSources,
     libraryDependencies ++= LibDependencies.play28
   )
@@ -32,7 +35,6 @@ lazy val playPartialsPlay28 = Project("play-partials-play-28", file("play-partia
 lazy val playPartialsPlay29 = Project("play-partials-play-29", file("play-partials-play-29"))
   .disablePlugins(sbt.plugins.JUnitXmlReportPlugin)
   .settings(
-    crossScalaVersions := Seq(scala2_13),
     sharedSources,
     libraryDependencies ++= LibDependencies.play29
   )
@@ -40,7 +42,7 @@ lazy val playPartialsPlay29 = Project("play-partials-play-29", file("play-partia
 lazy val playPartialsPlay30 = Project("play-partials-play-30", file("play-partials-play-30"))
   .disablePlugins(sbt.plugins.JUnitXmlReportPlugin)
   .settings(
-    crossScalaVersions := Seq(scala2_13),
+    crossScalaVersions := Seq(scala2_13, scala3),
     sharedSources,
     libraryDependencies ++= LibDependencies.play30
   )

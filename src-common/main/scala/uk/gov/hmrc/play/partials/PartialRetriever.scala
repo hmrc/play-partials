@@ -18,14 +18,17 @@ package uk.gov.hmrc.play.partials
 
 import play.api.mvc.RequestHeader
 import play.twirl.api.{Html, HtmlFormat}
-import uk.gov.hmrc.http.CoreGet
+import uk.gov.hmrc.http.client.HttpClientV2
 
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration.{Duration, DurationLong}
 
 trait PartialRetriever extends TemplateProcessor {
 
-  def httpGet: CoreGet
+  def httpClientV2: HttpClientV2
+
+  lazy val partialFetcher: PartialFetcher =
+    new DefaultPartialFetcher(httpClientV2)
 
   @deprecated("This will be removed when blocking getPartialContent is removed.", since = "8.0.0")
   def partialRetrievalTimeout: Duration =
