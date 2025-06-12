@@ -1,6 +1,6 @@
 
-val scala2_13 = "2.13.12"
-val scala3    = "3.3.3"
+val scala2_13 = "2.13.16"
+val scala3    = "3.3.6"
 
 ThisBuild / majorVersion     := 10
 ThisBuild / isPublicArtefact := true
@@ -13,7 +13,6 @@ Global / concurrentRestrictions += Tags.limitSum(1, Tags.Test, Tags.Untagged)
 lazy val library = (project in file("."))
   .settings(publish / skip := true)
   .aggregate(
-    playPartialsPlay28,
     playPartialsPlay29,
     playPartialsPlay30
   )
@@ -24,13 +23,6 @@ val sharedSources = Seq(
   Test    / unmanagedSourceDirectories   += baseDirectory.value / s"../src-common/test/scala",
   Test    / unmanagedResourceDirectories += baseDirectory.value / s"../src-common/test/resources"
 )
-
-lazy val playPartialsPlay28 = Project("play-partials-play-28", file("play-partials-play-28"))
-  .disablePlugins(sbt.plugins.JUnitXmlReportPlugin)
-  .settings(
-    sharedSources,
-    libraryDependencies ++= LibDependencies.play28
-  )
 
 lazy val playPartialsPlay29 = Project("play-partials-play-29", file("play-partials-play-29"))
   .disablePlugins(sbt.plugins.JUnitXmlReportPlugin)
