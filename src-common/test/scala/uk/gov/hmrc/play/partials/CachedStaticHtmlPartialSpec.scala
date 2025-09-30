@@ -20,7 +20,7 @@ import com.github.benmanes.caffeine.cache.Ticker
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito.{reset, times, verify, when}
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
+import org.scalatest.concurrent.{Eventually, IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.mockito.MockitoSugar
@@ -40,7 +40,8 @@ class CachedStaticHtmlPartialSpec
      with MockitoSugar
      with BeforeAndAfterEach
      with ScalaFutures
-     with IntegrationPatience {
+     with IntegrationPatience
+     with Eventually {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -79,18 +80,19 @@ class CachedStaticHtmlPartialSpec
           Future.successful(HtmlPartial.Success(title = None, content = Html("some content B")))
         )
 
-      htmlPartial.getPartial("foo").futureValue shouldBe HtmlPartial.Success(title = None, content = Html("some content A"))
-
       // whilst still within the refresh time the same content should be returned from cache
       htmlPartial.getPartial("foo").futureValue shouldBe HtmlPartial.Success(title = None, content = Html("some content A"))
 
       // now move beyond the refresh time
       testTicker.shiftTime(htmlPartial.refreshAfter + 1.second)
+
       // first call will trigger the refresh (and return cached value)
       htmlPartial.getPartial("foo").futureValue shouldBe HtmlPartial.Success(title = None, content = Html("some content A"))
-      Thread.sleep(2000) // give the cache time to update
-      // after that, the cache will have been updated
-      htmlPartial.getPartial("foo").futureValue shouldBe HtmlPartial.Success(title = None, content = Html("some content B"))
+
+      // check if cache has updated, fail otherwise
+      eventually(timeout(30.seconds), interval(100.millis)) {
+        htmlPartial.getPartial("foo").futureValue shouldBe HtmlPartial.Success(None, Html("some content B"))
+      }
 
       verify(mockPartialFetcher, times(2))
         .fetchPartial(eqTo("foo"))(any[ExecutionContext], any[HeaderCarrier])

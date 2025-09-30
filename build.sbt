@@ -12,10 +12,7 @@ Global / concurrentRestrictions += Tags.limitSum(1, Tags.Test, Tags.Untagged)
 
 lazy val library = (project in file("."))
   .settings(publish / skip := true)
-  .aggregate(
-    playPartialsPlay29,
-    playPartialsPlay30
-  )
+  .aggregate(playPartialsPlay30)
 
 val sharedSources = Seq(
   Compile / unmanagedSourceDirectories   += baseDirectory.value / s"../src-common/main/scala",
@@ -23,13 +20,6 @@ val sharedSources = Seq(
   Test    / unmanagedSourceDirectories   += baseDirectory.value / s"../src-common/test/scala",
   Test    / unmanagedResourceDirectories += baseDirectory.value / s"../src-common/test/resources"
 )
-
-lazy val playPartialsPlay29 = Project("play-partials-play-29", file("play-partials-play-29"))
-  .disablePlugins(sbt.plugins.JUnitXmlReportPlugin)
-  .settings(
-    sharedSources,
-    libraryDependencies ++= LibDependencies.play29
-  )
 
 lazy val playPartialsPlay30 = Project("play-partials-play-30", file("play-partials-play-30"))
   .disablePlugins(sbt.plugins.JUnitXmlReportPlugin)

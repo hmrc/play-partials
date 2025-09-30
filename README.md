@@ -153,6 +153,14 @@ class MyView @Inject()(headerCarrierForPartialsConverter: HeaderCarrierForPartia
 
 ## Changes
 
+### Version 10.2.0
+
+- Removes support for Play 2.9
+
+### Version 10.1.0
+
+- Removes support for Play 2.8
+
 ### Version 10.0.0
 
 - Cross compiled for Scala 3 and 2.13. Scala 2.12 has been dropped.
