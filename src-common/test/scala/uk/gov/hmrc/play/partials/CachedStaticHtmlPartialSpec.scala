@@ -73,7 +73,7 @@ class CachedStaticHtmlPartialSpec
   }
 
   "CachedStaticHtmlPartial.getPartial" should {
-    "retrieve HTML from the given URL" ignore {
+    "retrieve HTML from the given URL" in {
       when(mockPartialFetcher.fetchPartial(eqTo("foo"))(any[ExecutionContext], any[HeaderCarrier]))
         .thenReturn(
           Future.successful(HtmlPartial.Success(title = None, content = Html("some content A"))),
