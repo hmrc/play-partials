@@ -73,25 +73,33 @@ class CachedStaticHtmlPartialSpec
   }
 
   "CachedStaticHtmlPartial.getPartial" should {
-    "retrieve HTML from the given URL" ignore {
+    "retrieve HTML from the given URL" in {
       when(mockPartialFetcher.fetchPartial(eqTo("foo"))(any[ExecutionContext], any[HeaderCarrier]))
         .thenReturn(
           Future.successful(HtmlPartial.Success(title = None, content = Html("some content A"))),
           Future.successful(HtmlPartial.Success(title = None, content = Html("some content B")))
         )
 
-      htmlPartial.getPartial("foo").futureValue shouldBe HtmlPartial.Success(title = None, content = Html("some content A"))
+      // First call - should return cached content A
+      val firstResult = htmlPartial.getPartial("foo").futureValue
+      firstResult shouldBe HtmlPartial.Success(title = None, content = Html("some content A"))
 
-      // whilst still within the refresh time the same content should be returned from cache
-      htmlPartial.getPartial("foo").futureValue shouldBe HtmlPartial.Success(title = None, content = Html("some content A"))
+      // Second call - should return cached content A
+      val secondResult = htmlPartial.getPartial("foo").futureValue
+      secondResult shouldBe HtmlPartial.Success(title = None, content = Html("some content A"))
 
       // now move beyond the refresh time
       testTicker.shiftTime(htmlPartial.refreshAfter + 1.second)
-      // first call will trigger the refresh (and return cached value)
-      htmlPartial.getPartial("foo").futureValue shouldBe HtmlPartial.Success(title = None, content = Html("some content A"))
-      Thread.sleep(2000) // give the cache time to update
-      // after that, the cache will have been updated
-      htmlPartial.getPartial("foo").futureValue shouldBe HtmlPartial.Success(title = None, content = Html("some content B"))
+
+      // Trigger refresh (this will happen asynchronously)
+      val thirdResult = htmlPartial.getPartial("foo").futureValue
+      // The first call after refresh will still return the old value
+      thirdResult shouldBe HtmlPartial.Success(title = None, content = Html("some content A"))
+
+      eventually {
+        val refreshedResult = htmlPartial.getPartial("foo").futureValue
+        refreshedResult shouldBe HtmlPartial.Success(title = None, content = Html("some content B"))
+      }
 
       verify(mockPartialFetcher, times(2))
         .fetchPartial(eqTo("foo"))(any[ExecutionContext], any[HeaderCarrier])
